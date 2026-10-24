@@ -1,0 +1,25 @@
+# Свой сервер: приложение + Postgres. Запуск: ADMIN_PASSWORD=... docker compose up -d
+# HTTPS лучше повесить сверху (Caddy/Nginx) — без него браузер не сохранит сессию
+# как защищённую, а видео-экспорт и «Поделиться» на телефоне требуют https.
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Задайте ADMIN_PASSWORD}
+      DATABASE_URL: postgres://atlas:atlas@db:5432/atlas
+    depends_on:
+      - db
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: atlas
+      POSTGRES_PASSWORD: atlas
+      POSTGRES_DB: atlas
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:

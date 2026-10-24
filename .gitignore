@@ -1,0 +1,17 @@
+node_modules
+.next
+.data
+# локальные переменные и секреты — никогда не в git
+.env*
+!.env.example
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+coverage
+test-results
+playwright-report
+public/maplibre-gl-worker.mjs
+
+# системный мусор
+.DS_Store
+*.log
