@@ -75,7 +75,8 @@ export function Globe({ trips, activeTripId, activeCountry, selectedCityId, onSe
     let last = 0
     let held = false
     const tick = (now: number) => {
-      const dt = last ? Math.min((now - last) / 1000, 0.1) : 0
+      // скорость не зависит от частоты кадров; после долгой паузы (вкладка в фоне) — без рывка
+      const dt = last ? Math.min((now - last) / 1000, 0.5) : 0
       last = now
       if (spinRef.current && !held && readyRef.current && !map.isMoving() && map.getZoom() <= 3.5 && dt > 0) {
         const c = map.getCenter()
