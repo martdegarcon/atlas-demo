@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises"
 import path from "node:path"
 import { ImageResponse } from "next/og"
 import { getPhoto } from "./trips-repo"
+import { tripSummaryText } from "./i18n"
 import type { Trip } from "./types"
 
 // Карточка поездки — постер для Telegram/соцсетей и OG-превью ссылки.
@@ -31,18 +32,8 @@ function loadFonts() {
   return fontsPromise
 }
 
-function plural(n: number, forms: [string, string, string]) {
-  const m10 = n % 10, m100 = n % 100
-  if (m10 === 1 && m100 !== 11) return forms[0]
-  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return forms[1]
-  return forms[2]
-}
-
-export function tripSummary(trip: Trip) {
-  const n = trip.cities.length
-  const cities = trip.kind === "country" ? null : `${n} ${plural(n, ["город", "города", "городов"])}`
-  return [cities, trip.period, String(trip.year)].filter(Boolean).join(" · ")
-}
+// Превью ссылок и серверная карточка — на русском (основная аудитория)
+export const tripSummary = (trip: Trip) => tripSummaryText("ru", trip)
 
 // Обложка как data:URL — своё фото берём прямо из базы, внешнее скачиваем
 // (с таймаутом: без картинки карточка всё равно соберётся)

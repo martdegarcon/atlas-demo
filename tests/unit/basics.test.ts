@@ -1,3 +1,4 @@
+import { countCountries, placeCount } from "@/lib/types"
 import { describe, expect, it } from "vitest"
 import { slugify } from "@/lib/slug"
 import { findCity, newId, sortTrips } from "@/lib/types"
@@ -58,22 +59,22 @@ describe("i18n", () => {
     expect(t("en", "navMap")).toBe("Map")
   })
   it.each([
-    [1, "1 город"], [2, "2 города"], [4, "4 города"], [5, "5 городов"], [11, "11 городов"],
-    [12, "12 городов"], [21, "21 город"], [22, "22 города"], [25, "25 городов"], [111, "111 городов"], [0, "0 городов"],
+    [1, "1 место"], [2, "2 места"], [4, "4 места"], [5, "5 мест"], [11, "11 мест"],
+    [12, "12 мест"], [21, "21 место"], [22, "22 места"], [25, "25 мест"], [111, "111 мест"], [0, "0 мест"],
   ])("русское склонение: %i → %s", (n, s) => {
-    expect(countLabel("ru", n, "city")).toBe(s)
+    expect(countLabel("ru", n, "place")).toBe(s)
   })
   it("английское множественное число", () => {
-    expect(countLabel("en", 1, "city")).toBe("1 city")
-    expect(countLabel("en", 3, "city")).toBe("3 cities")
+    expect(countLabel("en", 1, "place")).toBe("1 location")
+    expect(countLabel("en", 3, "place")).toBe("3 locations")
     expect(countLabel("en", 2, "country")).toBe("2 countries")
     expect(countLabel("en", 2, "trip")).toBe("2 trips")
   })
-  it("«без городов» — только у страны-отметки и пустой поездки", () => {
-    expect(citiesTag("ru", { cities: [1] })).toBe("1 город")
-    expect(citiesTag("ru", { kind: "country", cities: [1] })).toBe("без городов")
-    expect(citiesTag("en", { cities: [] })).toBe("no cities")
-    expect(citiesTag("ru", { cities: [1, 2, 3] })).toBe("3 города")
+  it("«без мест» — только у страны-отметки и пустой поездки", () => {
+    expect(citiesTag("ru", { cities: [1] })).toBe("1 место")
+    expect(citiesTag("ru", { kind: "country", cities: [1] })).toBe("без мест")
+    expect(citiesTag("en", { cities: [] })).toBe("no locations")
+    expect(citiesTag("ru", { cities: [1, 2, 3] })).toBe("3 места")
   })
 })
 
@@ -89,5 +90,34 @@ describe("демо-данные", () => {
         expect(Math.abs(c.lng)).toBeLessThanOrEqual(180)
       }
     }
+  })
+})
+
+describe("подсчёт стран и мест", () => {
+  const city = (id: string, extra: object = {}) => ({ id, name: id, lat: 0, lng: 0, date: "", ...extra })
+  const trip = (id: string, country: string, cities: object[], extra: object = {}) =>
+    ({ id, title: id, country, year: 2026, period: "", isPublic: true, cities, ...extra }) as never
+
+  it("тур через несколько стран считается по странам его точек", () => {
+    const trips = [
+      trip("eu", "Германия", [city("berlin", { country: "Германия", countryCode: "de" }), city("paris", { country: "Франция", countryCode: "fr" }), city("rome", { country: "Италия", countryCode: "it" })]),
+      trip("jp", "Япония", [city("tokyo", { country: "Япония", countryCode: "jp" })]),
+    ]
+    expect(countCountries(trips)).toBe(4)
+  })
+  it("одна страна под разными названиями и без кода — без дублей", () => {
+    const trips = [
+      trip("a", "Россия", [city("msk", { country: "Россия", countryCode: "ru" })]),
+      trip("b", "Russia", [city("spb", { country: "Russia", countryCode: "ru" })]),
+      // старая точка без страны — по названию страны тура, которое уже связано с кодом
+      trip("c", "Россия", [city("kzn")]),
+    ]
+    expect(countCountries(trips)).toBe(1)
+  })
+  it("старые данные без стран у точек — как раньше, по турам", () => {
+    expect(countCountries([trip("a", "Япония", [city("1")]), trip("b", "Япония", [city("2")]), trip("c", "Грузия", [city("3")])])).toBe(2)
+  })
+  it("места: точки туров, страна-отметка не место", () => {
+    expect(placeCount([trip("a", "Япония", [city("1"), city("2")]), trip("b", "Грузия", [city("3")], { kind: "country" })])).toBe(2)
   })
 })

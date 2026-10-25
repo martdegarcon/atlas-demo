@@ -121,7 +121,7 @@ function VideoSection({ trip, lang, fileBase, onToast }: { trip: Trip; lang: Lan
     setState("prepare")
     try {
       const blob = await renderTripVideo(trip, {
-        signal: ac.signal,
+        signal: ac.signal, lang,
         onProgress: (phase, p) => { setState(phase); setProgress(p) },
       })
       const file = new File([blob], `${fileBase}.mp4`, { type: "video/mp4" })
@@ -182,7 +182,7 @@ function CardSection({ trip, lang, fileBase, onToast }: { trip: Trip; lang: Lang
   const fallback = `/api/trips/${encodeURIComponent(trip.id)}/card?v=${encodeURIComponent(trip.updatedAt || "")}`
   const [card, setCard] = useState<{ url: string; blob: Blob | null } | null>(null)
   const [loaded, setLoaded] = useState(false)
-  const version = `${trip.id}:${trip.updatedAt || ""}:${JSON.stringify(trip.cities.map((c) => [c.name, c.lat, c.lng, c.date]))}:${trip.title}`
+  const version = `${lang}:${trip.id}:${trip.updatedAt || ""}:${JSON.stringify(trip.cities.map((c) => [c.name, c.lat, c.lng, c.date]))}:${trip.title}`
 
   useEffect(() => {
     let cancelled = false
@@ -190,7 +190,7 @@ function CardSection({ trip, lang, fileBase, onToast }: { trip: Trip; lang: Lang
     setCard(null)
     setLoaded(false)
     import("@/lib/export-card")
-      .then(({ renderTripCard }) => renderTripCard(trip))
+      .then(({ renderTripCard }) => renderTripCard(trip, lang))
       .then((blob) => {
         if (cancelled) return
         objectUrl = URL.createObjectURL(blob)

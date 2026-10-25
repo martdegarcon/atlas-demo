@@ -8,7 +8,7 @@ vi.mock("gsap", () => ({ default: {} }))
 const { parseGoogleMapsUrl, isShortLink } = await import("@/components/add-place")
 const { normalizeBackup } = await import("@/components/editors")
 const { buildTimeline, frameAt } = await import("@/lib/export-video")
-const { applyPalette, buildStyle, PALETTE_DARK, PALETTE_LIGHT } = await import("@/lib/map-style")
+const { applyLabelLang, applyPalette, buildStyle, PALETTE_DARK, PALETTE_LIGHT } = await import("@/lib/map-style")
 const { demoTrips } = await import("@/lib/demo-data")
 
 describe("разбор ссылок Google Maps", () => {
@@ -136,6 +136,15 @@ describe("палитры карты", () => {
     expect(calls).toContainEqual(["background", "background-color", PALETTE_LIGHT.bg])
     expect(calls).toContainEqual(["label-city", "text-halo-color", PALETTE_LIGHT.halo])
     expect(calls.some(([id]) => id === "rail")).toBe(false)
+  })
+  it("подписи карты — на языке интерфейса, переключаются без перезагрузки", () => {
+    const label = (st: ReturnType<typeof buildStyle>) => JSON.stringify((st.layers.find((l) => l.id === "label-country") as unknown as { layout: Record<string, unknown> }).layout["text-field"])
+    expect(label(buildStyle(PALETTE_DARK))).toContain("name:ru")
+    expect(label(buildStyle(PALETTE_DARK, "en"))).toMatch(/^\["coalesce",\["get","name:en"\]/)
+    const calls: [string, unknown][] = []
+    applyLabelLang({ getLayer: () => true, setLayoutProperty: (id: string, _p: string, v: unknown) => { calls.push([id, v]) } }, "en")
+    expect(calls.map(([id]) => id)).toEqual(["label-water", "label-country", "label-region", "label-city", "label-town", "label-village"])
+    expect(JSON.stringify(calls[0][1])).toContain("name:en")
   })
   it("в палитрах одинаковый набор цветов", () => {
     expect(Object.keys(PALETTE_LIGHT).sort()).toEqual(Object.keys(PALETTE_DARK).sort())

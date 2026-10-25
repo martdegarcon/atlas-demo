@@ -13,7 +13,7 @@ test("гость видит атлас и карту, но не инструме
   // на самой карте нет плашки с источниками — она перенесена в «Ещё»
   await expect(page.locator(".maplibregl-ctrl-attrib")).toHaveCount(0)
   await expect(panel(page).getByText("Япония")).toBeVisible()
-  await expect(page.getByRole("button", { name: "Добавить место" })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Новое место" })).toHaveCount(0)
   await expandPanel(page)
   await panel(page).getByText("Португалия").click()
   await expect(panel(page).getByRole("heading", { level: 1 })).toHaveText("Португалия")
@@ -86,8 +86,8 @@ test("шторка: тап, свайп и клавиатура", async ({ page }
 
 test("быстрый поиск и вкладки", async ({ page }) => {
   await openApp(page)
-  await page.getByRole("button", { name: /Найти город/ }).click()
-  await page.getByPlaceholder("Найти город или поездку").fill("нар")
+  await page.getByRole("button", { name: /Найти место/ }).click()
+  await page.getByPlaceholder("Найти место или поездку").fill("нар")
   await page.locator(".atlas-sheet").getByRole("button", { name: /Нара/ }).click()
   await expect(panel(page).getByRole("heading", { level: 1 })).toHaveText("Нара")
   await page.getByRole("button", { name: /Поездки/ }).click()

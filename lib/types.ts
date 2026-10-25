@@ -13,6 +13,12 @@ export type City = {
   lat: number
   lng: number
   date: string
+  // Страна точки — из геокодера при добавлении (у старых точек досчитывается
+  // в фоне). Тур может идти через несколько стран, поэтому страна — у точки.
+  country?: string
+  // ISO-код страны в нижнем регистре ("ru", "jp") — по нему страны считаются
+  // без дублей, даже если названия на разных языках
+  countryCode?: string
   entries?: Entry[]
 }
 
@@ -55,3 +61,32 @@ export function newId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID()
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
+
+// Ключ страны точки: код, если известен; иначе — название страны точки или тура.
+// Названия, для которых где-то уже известен код, тоже сводятся к коду.
+export function countryKeys(trips: Trip[]): Set<string> {
+  const norm = (s: string) => s.trim().toLowerCase()
+  const codeByName = new Map<string, string>()
+  for (const t of trips) for (const c of t.cities) {
+    if (!c.countryCode) continue
+    if (c.country) codeByName.set(norm(c.country), c.countryCode)
+    // тур, все точки которого в одной стране, связывает и название тура с кодом
+    if (t.cities.every((x) => x.countryCode === c.countryCode)) codeByName.set(norm(t.country), c.countryCode)
+  }
+  const keys = new Set<string>()
+  for (const t of trips) {
+    if (!t.cities.length) { keys.add(codeByName.get(norm(t.country)) || norm(t.country)); continue }
+    for (const c of t.cities) {
+      const name = norm(c.country || t.country)
+      keys.add(c.countryCode || codeByName.get(name) || name)
+    }
+  }
+  keys.delete("")
+  return keys
+}
+
+export const countCountries = (trips: Trip[]) => countryKeys(trips).size
+
+// Сколько мест отмечено: точки туров. Страна-отметка («была, без деталей»)
+// — это страна, а не место, её точка не считается.
+export const placeCount = (trips: Trip[]) => trips.reduce((s, t) => s + (t.kind === "country" ? 0 : t.cities.length), 0)

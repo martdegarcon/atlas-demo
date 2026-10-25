@@ -20,7 +20,7 @@ test("вход по адресу /admin и обратно на главную", 
   await page.getByLabel("Пароль").fill(PASSWORD)
   await Promise.all([page.waitForURL((u) => u.pathname === "/"), page.getByRole("button", { name: "Войти" }).click()])
   await ready(page)
-  await expect(page.getByRole("button", { name: "Добавить место" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Новое место" })).toBeVisible()
   // уже вошли — /admin сразу ведёт на главную
   await page.goto("/admin")
   await expect(page).toHaveURL(/\/$/)
@@ -38,12 +38,12 @@ test("неверный пароль не пускает", async ({ page }) => {
 test("владелец добавляет город в новую скрытую поездку — гость её не видит", async ({ page, browser }) => {
   await login(page)
   await page.getByRole("button", { name: /Карта/ }).click()
-  await page.getByRole("button", { name: "Добавить место" }).click()
-  await page.getByPlaceholder("Название города").fill("Тбил")
+  await page.getByRole("button", { name: "Новое место" }).click()
+  await page.getByPlaceholder("Город, остров, бухта…").fill("Тбил")
   await page.getByText("Тбилиси, Грузия").first().click()
   await page.getByPlaceholder("Название поездки").fill("Грузия")
   await page.getByPlaceholder(/Дата/).fill("1 мая")
-  await page.getByRole("button", { name: "Добавить город" }).click()
+  await page.getByRole("button", { name: "Добавить место" }).click()
   await expect(panel(page).getByRole("heading", { level: 1 })).toHaveText("Тбилиси")
 
   // делаем поездку скрытой
@@ -124,7 +124,7 @@ test("удаление поездки и «Отменить» — пережив
 test("страна-отметка и бэкап", async ({ page }) => {
   await login(page)
   await page.getByRole("button", { name: /Карта/ }).click()
-  await page.getByRole("button", { name: "Добавить место" }).click()
+  await page.getByRole("button", { name: "Новое место" }).click()
   await page.getByRole("button", { name: "Страна" }).click()
   await page.getByPlaceholder("Название страны").fill("Арм")
   await page.getByText("Армения").first().click()
@@ -145,7 +145,7 @@ test("выход возвращает в публичный режим", async (
   await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Выйти" }).click()])
   await ready(page)
   // страница перезагружается уже без прав: «+» исчез, во «Ещё» снова кнопка входа
-  await expect(page.getByRole("button", { name: "Добавить место" })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Новое место" })).toHaveCount(0)
   await page.getByRole("button", { name: /Ещё/ }).click()
   await expect(page.getByText("Вход для владельца")).toBeVisible()
   // и API больше не принимает изменения от этого браузера

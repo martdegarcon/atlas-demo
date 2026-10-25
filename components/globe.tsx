@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState } from "react"
 import maplibregl from "@/lib/maplibre"
-import { applyPalette, buildStyle, PALETTE_DARK, PALETTE_LIGHT } from "@/lib/map-style"
+import { applyLabelLang, applyPalette, buildStyle, PALETTE_DARK, PALETTE_LIGHT } from "@/lib/map-style"
+import { t, type Lang } from "@/lib/i18n"
 import type { Trip } from "@/lib/types"
 
 const HOME_CENTER: [number, number] = [30, 28]
 const HOME_ZOOM = 1.3
+// скорость вращения в простое, градусов в секунду (оборот примерно за 2 минуты)
+const SPIN_DEG_PER_SEC = 2.8
 
 type Props = {
   trips: Trip[]
@@ -18,11 +21,12 @@ type Props = {
   // сколько места по краям занято панелями — камера центрирует маршрут в свободной части
   padding: { top: number; bottom: number; left: number; right: number }
   dark: boolean
+  lang: Lang
 }
 
 type Pin = { marker: maplibregl.Marker; el: HTMLButtonElement; tripId: string; cityId: string }
 
-export function Globe({ trips, activeTripId, activeCountry, selectedCityId, onSelectCity, onSelectCountry, padding, dark }: Props) {
+export function Globe({ trips, activeTripId, activeCountry, selectedCityId, onSelectCity, onSelectCountry, padding, dark, lang }: Props) {
   const [visible, setVisible] = useState(false)
   const [status, setStatus] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
@@ -39,6 +43,7 @@ export function Globe({ trips, activeTripId, activeCountry, selectedCityId, onSe
   const applyFocusRef = useRef<(() => void) | null>(null)
   const syncRef = useRef<(() => void) | null>(null)
   const darkRef = useRef(dark)
+  const langRef = useRef(lang)
 
   useEffect(() => { padRef.current = padding }, [padding])
   useEffect(() => { onSelectRef.current = onSelectCity }, [onSelectCity])
@@ -47,34 +52,49 @@ export function Globe({ trips, activeTripId, activeCountry, selectedCityId, onSe
     darkRef.current = dark
     if (readyRef.current && mapRef.current) applyPalette(mapRef.current, dark ? PALETTE_DARK : PALETTE_LIGHT)
   }, [dark])
+  useEffect(() => {
+    langRef.current = lang
+    if (readyRef.current && mapRef.current) applyLabelLang(mapRef.current, lang)
+  }, [lang])
 
   useEffect(() => {
     if (!containerRef.current) return
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: buildStyle(darkRef.current ? PALETTE_DARK : PALETTE_LIGHT),
+      style: buildStyle(darkRef.current ? PALETTE_DARK : PALETTE_LIGHT, langRef.current),
       center: HOME_CENTER, zoom: HOME_ZOOM, attributionControl: false, maxPitch: 70,
     })
     mapRef.current = map
 
-    // Медленное вращение глобуса, пока ничего не выбрано и никто не трогает карту
+    // Медленное вращение глобуса, пока ничего не выбрано и никто не трогает карту.
+    // Свой цикл кадров, а не анимация MapLibre: при системной настройке
+    // «уменьшить анимацию» (часто включена на Windows) MapLibre отключает
+    // плавные перелёты, и глобус переставал крутиться.
     let idleTimer: ReturnType<typeof setTimeout>
-    const spin = () => {
-      if (!spinRef.current || map.getZoom() > 3.5) return
-      const c = map.getCenter()
-      map.easeTo({ center: [c.lng - 45, c.lat], duration: 16000, easing: (x) => x })
+    let raf = 0
+    let last = 0
+    let held = false
+    const tick = (now: number) => {
+      const dt = last ? Math.min((now - last) / 1000, 0.1) : 0
+      last = now
+      if (spinRef.current && !held && readyRef.current && !map.isMoving() && map.getZoom() <= 3.5 && dt > 0) {
+        const c = map.getCenter()
+        map.setCenter([c.lng - SPIN_DEG_PER_SEC * dt, c.lat])
+      }
+      raf = requestAnimationFrame(tick)
     }
-    const pause = () => { spinRef.current = false; clearTimeout(idleTimer) }
+    raf = requestAnimationFrame(tick)
+    const pause = () => { held = true; spinRef.current = false; clearTimeout(idleTimer) }
     const resume = () => {
+      held = false
       clearTimeout(idleTimer)
-      idleTimer = setTimeout(() => { if (activeRef.current === null) { spinRef.current = true; spin() } }, 6000)
+      idleTimer = setTimeout(() => { if (activeRef.current === null) spinRef.current = true }, 6000)
     }
     map.on("mousedown", pause); map.on("touchstart", pause); map.on("wheel", pause)
     map.on("mouseup", resume); map.on("touchend", resume); map.on("wheel", resume)
-    map.on("moveend", spin)
     map.on("error", (e) => {
       // ошибки отдельных тайлов не страшны; показываем только если карта так и не загрузилась
-      if (!readyRef.current) setStatus("Карта не загрузилась: " + (e.error?.message || "ошибка сети"))
+      if (!readyRef.current) setStatus(t(langRef.current, "mapFailed"))
     })
 
     const syncPlaces = () => {
@@ -107,6 +127,7 @@ export function Globe({ trips, activeTripId, activeCountry, selectedCityId, onSe
     map.on("style.load", () => {
       map.setProjection({ type: "globe" })
       applyPalette(map, darkRef.current ? PALETTE_DARK : PALETTE_LIGHT)
+      applyLabelLang(map, langRef.current)
       const accent = getComputedStyle(document.documentElement).getPropertyValue("--atlas-accent").trim() || "#fb2c36"
       map.addSource("routes", { type: "geojson", data: { type: "FeatureCollection", features: [] } })
       map.addLayer({ id: "routes-line", type: "line", source: "routes", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": accent, "line-width": 1.5, "line-opacity": 0.6 } })
@@ -125,15 +146,17 @@ export function Globe({ trips, activeTripId, activeCountry, selectedCityId, onSe
         }
       })
 
+      // глобус сразу по центру свободной части экрана, а не под панелью
+      const p0 = padRef.current
+      map.setPadding({ top: 0, bottom: 0, left: p0.left, right: p0.right })
       readyRef.current = true
       syncPlaces()
       const show = () => setVisible(true)
       map.once("idle", show)
       setTimeout(show, 3000)
-      spin()
     })
 
-    return () => { clearTimeout(idleTimer); readyRef.current = false; map.remove(); mapRef.current = null }
+    return () => { clearTimeout(idleTimer); cancelAnimationFrame(raf); readyRef.current = false; map.remove(); mapRef.current = null }
   }, [])
 
   const padKey = `${padding.top}:${padding.bottom}:${padding.left}:${padding.right}`
@@ -211,7 +234,7 @@ export function Globe({ trips, activeTripId, activeCountry, selectedCityId, onSe
             <span className="atlas-loader-dot" style={{ animationDelay: "150ms" }} />
             <span className="atlas-loader-dot" style={{ animationDelay: "300ms" }} />
           </div>
-          <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Атлас</span>
+          <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{t(lang, "atlasTitle")}</span>
         </div>
       )}
       {status && (

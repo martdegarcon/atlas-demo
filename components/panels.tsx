@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import gsap from "gsap"
 import { citiesTag, countLabel, languages, t, type Lang } from "@/lib/i18n"
-import { findCity, type City, type Entry, type Trip } from "@/lib/types"
+import { countCountries, findCity, placeCount, type City, type Entry, type Trip } from "@/lib/types"
 import { cn } from "./editors"
 import { Photo, usePostViewer, type ViewerItem } from "./photo"
 import { Segmented } from "./ui"
@@ -61,8 +61,8 @@ export function MapPanel(p: {
   const trip = activeTripId ? trips.find((x) => x.id === activeTripId) || null : null
   const city = selectedCityId && !p.cityAside ? findCity(trips, selectedCityId)?.city || null : null
   const countryTrips = activeCountry ? trips.filter((x) => x.country === activeCountry) : trips
-  const countries = new Set(trips.map((x) => x.country)).size
-  const cityCount = trips.reduce((s, x) => s + x.cities.length, 0)
+  const countries = countCountries(trips)
+  const cityCount = placeCount(trips)
   const scrollRef = useReveal([activeCountry, activeTripId, p.cityAside ? null : selectedCityId, trips])
 
   let eyebrow = "", title = t(lang, "atlasTitle"), sub = ""
@@ -71,7 +71,7 @@ export function MapPanel(p: {
   else if (trip) { eyebrow = t(lang, "tripEyebrow"); title = trip.title; sub = [trip.period, trip.year].filter(Boolean).join(" · ") }
   else if (activeCountry) {
     title = activeCountry
-    sub = `${countLabel(lang, countryTrips.length, "trip")} · ${countLabel(lang, countryTrips.reduce((s, x) => s + x.cities.length, 0), "city")}`
+    sub = `${countLabel(lang, countryTrips.length, "trip")} · ${countLabel(lang, placeCount(countryTrips), "place")}`
   }
   const countryLevel = !!activeCountry && !trip
 
@@ -131,7 +131,7 @@ export function MapPanel(p: {
           <>
             <div className="grid grid-cols-2 gap-2 pb-3">
               <Stat value={countries} label={countLabel(lang, countries, "country")} />
-              <Stat value={cityCount} label={countLabel(lang, cityCount, "city")} />
+              <Stat value={cityCount} label={countLabel(lang, cityCount, "place")} />
             </div>
             <h2 className={cn("px-2 pb-2", eyebrowCls)}>{t(lang, "tripsHeader")}</h2>
             {!trips.length && <div data-reveal className="glass-tile rounded-[22px] p-5 text-sm text-muted-foreground">{t(lang, canEdit ? "emptyAtlas" : "emptyAtlasPublic")}</div>}
@@ -251,8 +251,8 @@ export function MorePanel(p: {
   const { trips, lang } = p
   const fileRef = useRef<HTMLInputElement>(null)
   const ref = useReveal([p.isAdmin], false)
-  const countries = new Set(trips.map((x) => x.country)).size
-  const cities = trips.reduce((s, x) => s + x.cities.length, 0)
+  const countries = countCountries(trips)
+  const cities = placeCount(trips)
 
   const row = "focus-ring flex w-full items-center justify-between gap-3 px-4 py-3 text-left disabled:opacity-40"
 

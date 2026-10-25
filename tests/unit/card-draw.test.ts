@@ -47,7 +47,7 @@ const share = (ctx: ReturnType<typeof draw>, x: number, y: number, w: number, h:
 
 describe("карточка на карте", () => {
   it("сводка", () => {
-    expect(cardSummary(makeTrip())).toBe("3 города · 1–9 мая · 2026")
+    expect(cardSummary(makeTrip())).toBe("3 места · 1–9 мая · 2026")
     expect(cardSummary(makeTrip({ kind: "country", period: "" }))).toBe("2026")
   })
 

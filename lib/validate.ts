@@ -24,6 +24,8 @@ const city = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
   date: text(LIMITS.date).default(""),
+  country: text(LIMITS.country).optional(),
+  countryCode: z.string().regex(/^[a-z]{2}$/).optional(),
   entries: z.array(entry).max(200).optional(),
 })
 

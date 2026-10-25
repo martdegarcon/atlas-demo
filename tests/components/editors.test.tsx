@@ -48,7 +48,7 @@ describe("CityForm", () => {
     render(<CityForm city={makeTrip().cities[0]} lang="ru" onSave={vi.fn()} onDelete={onDelete} />)
     await user.clear(screen.getAllByRole("textbox")[0])
     expect(screen.getByRole("button", { name: "Сохранить" })).toBeDisabled()
-    await user.click(screen.getByRole("button", { name: "Удалить город" }))
+    await user.click(screen.getByRole("button", { name: "Удалить место" }))
     expect(onDelete).toHaveBeenCalled()
   })
   it("для страны-отметки пустая дата остаётся пустой", async () => {
@@ -119,7 +119,7 @@ describe("TripForm", () => {
   it("у страны-отметки нет периода и порядка городов", () => {
     render(<TripForm trip={makeTrip({ kind: "country", cities: [makeTrip().cities[0]] })} lang="ru" onSave={vi.fn()} onDelete={vi.fn()} />)
     expect(screen.queryByText("Даты поездки")).not.toBeInTheDocument()
-    expect(screen.queryByText("Порядок городов")).not.toBeInTheDocument()
+    expect(screen.queryByText("Порядок мест")).not.toBeInTheDocument()
   })
   it("переключатель видимости показывает текущее значение", async () => {
     const onChange = vi.fn()

@@ -70,6 +70,15 @@ describe("сохранение поездки", () => {
     expect(new Date(b.updatedAt!).getTime()).toBeGreaterThan(new Date(a.updatedAt!).getTime())
   })
 
+  it("страна у каждой точки сохраняется (тур через несколько стран)", async () => {
+    const t = makeTrip({ id: "multi" })
+    t.cities[0] = { ...t.cities[0], country: "Грузия", countryCode: "ge" }
+    t.cities[1] = { ...t.cities[1], country: "Армения", countryCode: "am" }
+    const saved = await upsertTrip(t)
+    expect(saved.cities.map((c) => c.countryCode)).toEqual(["ge", "am", undefined])
+    expect(saved.cities[1].country).toBe("Армения")
+    expect((await getTripById("multi", { includePrivate: true }))!.cities[0]).toMatchObject({ country: "Грузия", countryCode: "ge" })
+  })
   it("страна-отметка сохраняет kind", async () => {
     const saved = await upsertTrip(makeTrip({ id: "fr", title: "Франция", kind: "country", cities: [{ id: "fr-c", name: "Франция", lat: 46, lng: 2, date: "" }] }))
     expect(saved.kind).toBe("country")

@@ -1,5 +1,5 @@
 // Локализация интерфейса ru/en. Переводится только «оболочка» — названия
-// поездок, городов и заметки остаются как есть, это контент.
+// поездок, мест и заметки остаются как есть, это контент.
 export type Lang = "ru" | "en"
 
 export const languages: { id: Lang; label: string }[] = [
@@ -9,24 +9,25 @@ export const languages: { id: Lang; label: string }[] = [
 
 const ru = {
   navMap: "Карта", navTrips: "Поездки", navNotes: "Заметки", navMore: "Ещё",
-  searchPlaceholder: "Найти город или поездку",
-  addPlaceAria: "Добавить место",
+  searchPlaceholder: "Найти место или поездку",
+  addPlaceAria: "Новое место",
   panelCollapseAria: "Свернуть панель", panelExpandAria: "Развернуть панель",
+  panelHideAria: "Убрать панель", panelShowAria: "Показать панель",
   panelAria: "Мой атлас", navAria: "Основная навигация", backAria: "Назад",
-  next: "Дальше", noEntriesForCity: "Заметок про этот город пока нет.",
+  next: "Дальше", noEntriesForCity: "Заметок про это место пока нет.",
   atlasTitle: "Атлас", tripEyebrow: "Поездка",
   tripsHeader: "Поездки", tripsEmpty: "Поездок пока нет.",
   notesHeader: "Заметки", notesEmpty: "Заметок пока нет.",
-  moreHeader: "Ещё", statTripsLabel: "поездки", statCountriesLabel: "страны", statCitiesLabel: "города",
+  moreHeader: "Ещё", statTripsLabel: "поездки", statCountriesLabel: "страны", statCitiesLabel: "места",
   cancel: "Отмена",
   settingsHeader: "Настройки", themeLabel: "Тема", themeLight: "Светлая", themeDark: "Тёмная", themeSystem: "Системная",
   languageLabel: "Язык",
   addPlaceTitle: "Новое место", addPlaceBackAria: "Назад к поиску", closeAria: "Закрыть",
-  kindCity: "Город", kindCountry: "Страна",
-  kindCityHint: "Город попадёт в поездку — существующую или новую.",
-  kindCountryHint: "Страна без городов — просто отметка на карте: была, без деталей по городам.",
+  kindCity: "Место", kindCountry: "Страна",
+  kindCityHint: "Город, остров, бухта — любая точка. Попадёт в поездку: существующую или новую.",
+  kindCountryHint: "Страна без мест — просто отметка на карте: была, без подробностей.",
   searchModeName: "По названию", searchModeLink: "По ссылке",
-  cityPlaceholder: "Название города", countryPlaceholder: "Название страны",
+  cityPlaceholder: "Город, остров, бухта…", countryPlaceholder: "Название страны",
   linkPlaceholder: "Ссылка на Google Maps",
   linkHint: "Вставьте ссылку на место из Google Maps — распознаем название и координаты.",
   linkSubmit: "Найти по ссылке", linkResolving: "Распознаю ссылку…",
@@ -34,19 +35,19 @@ const ru = {
   searching: "Ищу…", noResults: "Ничего не нашлось",
   tripLabel: "Поездка", newTripOption: "+ Новая поездка",
   tripTitlePlaceholder: "Название поездки", yearPlaceholder: "Год", datePlaceholder: "Дата, например «12 окт»",
-  notePlaceholder: "Заметка (необязательно)", addCityButton: "Добавить город", addCountryButton: "Добавить страну",
-  quickSearchHint: "Начните вводить — найдём город или поездку.",
-  edit: "Редактировать", editCity: "Изменить город", editTrip: "Изменить поездку",
+  notePlaceholder: "Заметка (необязательно)", addCityButton: "Добавить место", addCountryButton: "Добавить страну",
+  quickSearchHint: "Начните вводить — найдём место или поездку.",
+  edit: "Редактировать", editCity: "Изменить место", editTrip: "Изменить поездку",
   newEntry: "Новая заметка", editEntry: "Изменить заметку", addEntry: "Добавить заметку",
   save: "Сохранить", saved: "Сохранено", deleted: "Удалено", undo: "Отменить",
-  deleteCity: "Удалить город", deleteTrip: "Удалить поездку", deleteEntry: "Удалить заметку",
+  deleteCity: "Удалить место", deleteTrip: "Удалить поездку", deleteEntry: "Удалить заметку",
   cityNameLabel: "Название", dateLabel: "Дата", titleLabel: "Название", yearLabel: "Год",
   periodLabel: "Даты поездки", periodPlaceholder: "Например «12–28 окт»", countryLabel: "Страна",
   timeLabel: "Когда", timePlaceholder: "Например «12 окт, 09:40»", textLabel: "Текст",
   entryTextPlaceholder: "Что хочется запомнить?",
   addPhoto: "Добавить фото", replacePhoto: "Заменить", removePhoto: "Убрать",
   photoLoading: "Загружаю фото…", photoError: "Не получилось загрузить фото. Попробуйте JPG или PNG.",
-  citiesOrder: "Порядок городов", moveUp: "Выше", moveDown: "Ниже",
+  citiesOrder: "Порядок мест", moveUp: "Выше", moveDown: "Ниже",
   visibilityLabel: "Кто видит", visPublic: "Все", visPrivate: "Только я", privateBadge: "скрыта",
   dataHeader: "Данные", exportAction: "Скачать бэкап", exportHint: "JSON-файл со всеми поездками и заметками",
   importAction: "Восстановить из бэкапа", importHint: "Заменит текущие данные — можно будет отменить",
@@ -65,12 +66,12 @@ const ru = {
   copyLink: "Скопировать", send: "Отправить", download: "Скачать", linkCopied: "Ссылка скопирована",
   privateNote: "Сейчас поездку видите только вы — по ссылке она не откроется.",
   makePublic: "Открыть доступ всем",
-  videoTitle: "Видео-пролёт", videoHint: "Камера летит по городам, маршрут прорисовывается. В Telegram играет как гифка.",
+  videoTitle: "Видео-пролёт", videoHint: "Камера летит по местам, маршрут прорисовывается. В Telegram играет как гифка.",
   videoMake: "Собрать видео", videoPrepare: "Готовлю карту…", videoRendering: "Собираю видео",
   videoKeepTab: "Не сворачивайте вкладку, пока идёт сборка",
   videoUnsupported: "Этот браузер не умеет собирать видео. Откройте атлас в Chrome, Edge или Safari 17+.",
   videoFailed: "Не получилось собрать видео", videoRedo: "Собрать заново",
-  cardTitle: "Карточка", cardHint: "Постер 1080×1350: маршрут, города, даты.",
+  cardTitle: "Карточка", cardHint: "Постер 1080×1350: маршрут, места, даты.",
   shareFailed: "Не получилось поделиться",
   yearRequired: "Укажите год",
   yearFormat: "Год — четыре цифры",
@@ -86,6 +87,7 @@ const ru = {
   openOnMap: "Показать на карте",
   prevAria: "Предыдущая",
   nextAria: "Следующая",
+  mapFailed: "Карта не загрузилась — проверьте соединение",
   loginSetupHint: "Чтобы включить вход, задайте на сервере переменную ADMIN_PASSWORD (локально — в файле .env.local) и перезапустите приложение.",
 }
 
@@ -93,24 +95,25 @@ export type DictKey = keyof typeof ru
 
 const en: Record<DictKey, string> = {
   navMap: "Map", navTrips: "Trips", navNotes: "Notes", navMore: "More",
-  searchPlaceholder: "Find a city or trip",
-  addPlaceAria: "Add a place",
+  searchPlaceholder: "Find a location or trip",
+  addPlaceAria: "New place",
   panelCollapseAria: "Collapse panel", panelExpandAria: "Expand panel",
+  panelHideAria: "Hide panel", panelShowAria: "Show panel",
   panelAria: "My atlas", navAria: "Main navigation", backAria: "Back",
-  next: "Next", noEntriesForCity: "No notes for this city yet.",
+  next: "Next", noEntriesForCity: "No notes for this location yet.",
   atlasTitle: "Atlas", tripEyebrow: "Trip",
   tripsHeader: "Trips", tripsEmpty: "No trips yet.",
   notesHeader: "Notes", notesEmpty: "No notes yet.",
-  moreHeader: "More", statTripsLabel: "trips", statCountriesLabel: "countries", statCitiesLabel: "cities",
+  moreHeader: "More", statTripsLabel: "trips", statCountriesLabel: "countries", statCitiesLabel: "locations",
   cancel: "Cancel",
   settingsHeader: "Settings", themeLabel: "Theme", themeLight: "Light", themeDark: "Dark", themeSystem: "System",
   languageLabel: "Language",
   addPlaceTitle: "New place", addPlaceBackAria: "Back to search", closeAria: "Close",
-  kindCity: "City", kindCountry: "Country",
-  kindCityHint: "A city goes into a trip — an existing one or a new one.",
-  kindCountryHint: "A country with no cities is just a marker on the map: been there, no city detail.",
+  kindCity: "Location", kindCountry: "Country",
+  kindCityHint: "A city, island, bay — any spot. It goes into a trip: an existing one or a new one.",
+  kindCountryHint: "A country with no locations is just a marker on the map: been there, no detail.",
   searchModeName: "By name", searchModeLink: "By link",
-  cityPlaceholder: "City name", countryPlaceholder: "Country name",
+  cityPlaceholder: "City, island, bay…", countryPlaceholder: "Country name",
   linkPlaceholder: "Google Maps link",
   linkHint: "Paste a Google Maps link to a place — we'll pick up its name and coordinates.",
   linkSubmit: "Look up link", linkResolving: "Resolving link…",
@@ -118,19 +121,19 @@ const en: Record<DictKey, string> = {
   searching: "Searching…", noResults: "Nothing found",
   tripLabel: "Trip", newTripOption: "+ New trip",
   tripTitlePlaceholder: "Trip name", yearPlaceholder: "Year", datePlaceholder: "Date, e.g. “Oct 12”",
-  notePlaceholder: "Note (optional)", addCityButton: "Add city", addCountryButton: "Add country",
-  quickSearchHint: "Start typing to find a city or trip.",
-  edit: "Edit", editCity: "Edit city", editTrip: "Edit trip",
+  notePlaceholder: "Note (optional)", addCityButton: "Add location", addCountryButton: "Add country",
+  quickSearchHint: "Start typing to find a location or trip.",
+  edit: "Edit", editCity: "Edit location", editTrip: "Edit trip",
   newEntry: "New note", editEntry: "Edit note", addEntry: "Add a note",
   save: "Save", saved: "Saved", deleted: "Deleted", undo: "Undo",
-  deleteCity: "Delete city", deleteTrip: "Delete trip", deleteEntry: "Delete note",
+  deleteCity: "Delete location", deleteTrip: "Delete trip", deleteEntry: "Delete note",
   cityNameLabel: "Name", dateLabel: "Date", titleLabel: "Title", yearLabel: "Year",
   periodLabel: "Trip dates", periodPlaceholder: "E.g. “Oct 12–28”", countryLabel: "Country",
   timeLabel: "When", timePlaceholder: "E.g. “Oct 12, 09:40”", textLabel: "Text",
   entryTextPlaceholder: "What do you want to remember?",
   addPhoto: "Add a photo", replacePhoto: "Replace", removePhoto: "Remove",
   photoLoading: "Uploading photo…", photoError: "Couldn't upload that photo. Try a JPG or PNG.",
-  citiesOrder: "City order", moveUp: "Move up", moveDown: "Move down",
+  citiesOrder: "Location order", moveUp: "Move up", moveDown: "Move down",
   visibilityLabel: "Who can see it", visPublic: "Everyone", visPrivate: "Only me", privateBadge: "hidden",
   dataHeader: "Data", exportAction: "Download backup", exportHint: "A JSON file with every trip and note",
   importAction: "Restore from backup", importHint: "Replaces your current data — you can undo it",
@@ -149,12 +152,12 @@ const en: Record<DictKey, string> = {
   copyLink: "Copy", send: "Send", download: "Download", linkCopied: "Link copied",
   privateNote: "Only you can see this trip right now — the link won't open for others.",
   makePublic: "Make it public",
-  videoTitle: "Fly-through video", videoHint: "The camera flies city to city as the route draws in. Plays like a GIF in Telegram.",
+  videoTitle: "Fly-through video", videoHint: "The camera flies from place to place as the route draws in. Plays like a GIF in Telegram.",
   videoMake: "Make the video", videoPrepare: "Preparing the map…", videoRendering: "Rendering video",
   videoKeepTab: "Keep this tab open while it renders",
   videoUnsupported: "This browser can't render video. Open the atlas in Chrome, Edge or Safari 17+.",
   videoFailed: "Couldn't render the video", videoRedo: "Render again",
-  cardTitle: "Card", cardHint: "A 1080×1350 poster: route, cities, dates.",
+  cardTitle: "Card", cardHint: "A 1080×1350 poster: route, locations, dates.",
   shareFailed: "Couldn't share",
   yearRequired: "Enter a year",
   yearFormat: "Year must be four digits",
@@ -170,6 +173,7 @@ const en: Record<DictKey, string> = {
   openOnMap: "Show on map",
   prevAria: "Previous",
   nextAria: "Next",
+  mapFailed: "The map didn't load — check your connection",
   loginSetupHint: "To enable sign-in, set ADMIN_PASSWORD on the server (locally — in .env.local) and restart the app.",
 }
 
@@ -182,7 +186,7 @@ export function t(lang: Lang, key: DictKey): string {
 const FORMS = {
   trip: { ru: ["поездка", "поездки", "поездок"], en: ["trip", "trips"] },
   country: { ru: ["страна", "страны", "стран"], en: ["country", "countries"] },
-  city: { ru: ["город", "города", "городов"], en: ["city", "cities"] },
+  place: { ru: ["место", "места", "мест"], en: ["location", "locations"] },
 } as const
 
 function pluralRu(n: number, forms: readonly string[]) {
@@ -197,11 +201,20 @@ export function countLabel(lang: Lang, n: number, key: keyof typeof FORMS): stri
   return lang === "en" ? `${n} ${n === 1 ? f.en[0] : f.en[1]}` : `${n} ${pluralRu(n, f.ru)}`
 }
 
-// «Без городов» — только у страны-отметки или пустой поездки
+// «Без мест» — только у страны-отметки или пустой поездки
 export function citiesTag(lang: Lang, trip: { kind?: string; cities: unknown[] }): string {
   const n = trip.cities.length
-  if (trip.kind === "country" || n === 0) return lang === "ru" ? "без городов" : "no cities"
-  return countLabel(lang, n, "city")
+  if (trip.kind === "country" || n === 0) return lang === "ru" ? "без мест" : "no locations"
+  return countLabel(lang, n, "place")
 }
+
+// Строка под названием поездки на карточке, в видео и в превью ссылки:
+// «13 мест · 07.2026–08.2026 · 2026»
+export function tripSummaryText(lang: Lang, trip: { kind?: string; cities: unknown[]; period?: string; year: number }): string {
+  return [trip.kind === "country" ? null : countLabel(lang, trip.cities.length, "place"), trip.period, String(trip.year)].filter(Boolean).join(" · ")
+}
+
+export const brandName = (lang: Lang) => (lang === "ru" ? "АТЛАС" : "ATLAS")
+export const andMore = (lang: Lang, n: number) => (lang === "ru" ? `и ещё ${n}` : `and ${n} more`)
 
 export const STORAGE_LANG_KEY = "atlas-lang"

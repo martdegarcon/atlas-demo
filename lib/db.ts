@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS cities (
   date text NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS cities_trip_idx ON cities(trip_id);
+ALTER TABLE cities ADD COLUMN IF NOT EXISTS country text;
+ALTER TABLE cities ADD COLUMN IF NOT EXISTS country_code text;
 CREATE TABLE IF NOT EXISTS entries (
   id text PRIMARY KEY,
   city_id text NOT NULL REFERENCES cities(id) ON DELETE CASCADE,

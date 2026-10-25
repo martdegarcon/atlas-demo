@@ -21,10 +21,17 @@ export const PALETTE_LIGHT: Palette = {
   labelVillage: "#9a9488", halo: "#f6f4f0",
 }
 
-const NAME = ["coalesce", ["get", "name:ru"], ["get", "name:latin"], ["get", "name_en"], ["get", "name"]]
+// Подписи — на языке интерфейса; если перевода нет, латиницей или как в оригинале
+export type MapLang = "ru" | "en"
+export const labelField = (lang: MapLang) =>
+  lang === "ru"
+    ? ["coalesce", ["get", "name:ru"], ["get", "name:latin"], ["get", "name_en"], ["get", "name"]]
+    : ["coalesce", ["get", "name:en"], ["get", "name_en"], ["get", "name:latin"], ["get", "name"]]
+const LABEL_LAYERS = ["label-water", "label-country", "label-region", "label-city", "label-town", "label-village"]
 const FONT = ["Noto Sans Regular"]
 
-export function buildStyle(p: Palette): StyleSpecification {
+export function buildStyle(p: Palette, lang: MapLang = "ru"): StyleSpecification {
+  const NAME = labelField(lang)
   return {
     version: 8,
     glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
@@ -120,4 +127,12 @@ export function applyPalette(map: Paintable, p: Palette) {
   for (const id of ["label-region", "label-town"]) set(id, "text-color", p.labelDim)
   set("label-village", "text-color", p.labelVillage)
   for (const id of ["label-water", "label-country", "label-region", "label-city", "label-town", "label-village"]) set(id, "text-halo-color", p.halo)
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Layoutable = { getLayer(id: string): unknown; setLayoutProperty(id: string, prop: any, v: any): unknown }
+
+// Сменить язык подписей без перезагрузки карты
+export function applyLabelLang(map: Layoutable, lang: MapLang) {
+  for (const id of LABEL_LAYERS) if (map.getLayer(id)) map.setLayoutProperty(id, "text-field", labelField(lang))
 }

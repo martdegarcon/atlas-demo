@@ -2,6 +2,7 @@
 
 import maplibregl from "@/lib/maplibre"
 import { loadFonts, openOffscreenMap, settled } from "./offscreen-map"
+import { andMore, brandName, tripSummaryText, type Lang } from "./i18n"
 import type { Trip } from "./types"
 
 // Карточка поездки 1080×1350 на настоящей карте: та же карта, что в приложении,
@@ -21,21 +22,11 @@ type Pt = { x: number; y: number }
 type Box = { x: number; y: number; w: number; h: number }
 const overlaps = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
 
-function plural(n: number, forms: [string, string, string]) {
-  const m10 = n % 10, m100 = n % 100
-  if (m10 === 1 && m100 !== 11) return forms[0]
-  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return forms[1]
-  return forms[2]
-}
-
-export function cardSummary(trip: Trip) {
-  const n = trip.cities.length
-  return [trip.kind === "country" ? null : `${n} ${plural(n, ["город", "города", "городов"])}`, trip.period, String(trip.year)].filter(Boolean).join(" · ")
-}
+export const cardSummary = (trip: Trip, lang: Lang = "ru") => tripSummaryText(lang, trip)
 
 // Все наложения карточки. map — уже нарисованная карта (или null в тестах),
 // project — перевод координат в пиксели кадра.
-export function drawCard(ctx: CanvasRenderingContext2D, trip: Trip, project: (lng: number, lat: number) => Pt, mapImage: CanvasImageSource | null) {
+export function drawCard(ctx: CanvasRenderingContext2D, trip: Trip, project: (lng: number, lat: number) => Pt, mapImage: CanvasImageSource | null, lang: Lang = "ru") {
   const W = CARD_W, H = CARD_H
   ctx.fillStyle = BG
   ctx.fillRect(0, 0, W, H)
@@ -98,7 +89,7 @@ export function drawCard(ctx: CanvasRenderingContext2D, trip: Trip, project: (ln
   ctx.font = `500 26px ${FONT}`
   ctx.letterSpacing = "7px"
   ctx.fillStyle = ACCENT
-  ctx.fillText("АТЛАС", 72, 100)
+  ctx.fillText(brandName(lang), 72, 100)
   ctx.fillStyle = "rgba(244,241,236,.8)"
   ctx.textAlign = "right"
   ctx.fillText(String(trip.year), W - 72, 100)
@@ -113,7 +104,7 @@ export function drawCard(ctx: CanvasRenderingContext2D, trip: Trip, project: (ln
   ctx.letterSpacing = "0px"
   ctx.font = `400 36px ${FONT}`
   ctx.fillStyle = "rgba(244,241,236,.68)"
-  ctx.fillText(cardSummary(trip), 72, 312)
+  ctx.fillText(cardSummary(trip, lang), 72, 312)
 
   // список городов
   const max = 8
@@ -140,7 +131,7 @@ export function drawCard(ctx: CanvasRenderingContext2D, trip: Trip, project: (ln
   if (trip.cities.length > max) {
     ctx.font = `400 24px ${FONT}`
     ctx.fillStyle = "rgba(244,241,236,.55)"
-    ctx.fillText(`и ещё ${trip.cities.length - max}`, 72, H - 40)
+    ctx.fillText(andMore(lang, trip.cities.length - max), 72, H - 40)
   }
 }
 
@@ -161,7 +152,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath()
 }
 
-export async function renderTripCard(trip: Trip): Promise<Blob> {
+export async function renderTripCard(trip: Trip, lang: Lang = "ru"): Promise<Blob> {
   if (!trip.cities.length) throw new Error("empty")
   await loadFonts()
   const first = trip.cities[0]
@@ -180,7 +171,7 @@ export async function renderTripCard(trip: Trip): Promise<Blob> {
     canvas.width = CARD_W
     canvas.height = CARD_H
     const ctx = canvas.getContext("2d")!
-    drawCard(ctx, trip, (lng, lat) => map.project([lng, lat]), map.getCanvas())
+    drawCard(ctx, trip, (lng, lat) => map.project([lng, lat]), map.getCanvas(), lang)
     return await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("encode"))), "image/png"))
   } finally {
     dispose()

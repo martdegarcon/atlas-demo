@@ -24,6 +24,8 @@
   --glass-panel-grad: linear-gradient(165deg, rgb(255 255 255 / 0.56) 0%, rgb(255 255 255 / 0.26) 45%, rgb(0 0 0 / 0.05) 100%);
   --glass-slab-grad: linear-gradient(160deg, rgb(255 255 255 / 0.5) 0%, rgb(255 255 255 / 0.2) 50%, rgb(0 0 0 / 0.045) 100%);
   --glass-tile-bg: rgb(0 0 0 / 0.045);
+  /* окна поверх затемнения: в светлой теме почти непрозрачные, иначе серое на сером */
+  --glass-modal-grad: linear-gradient(165deg, rgb(255 255 255 / 0.96) 0%, rgb(250 249 246 / 0.93) 55%, rgb(242 240 235 / 0.92) 100%);
   --glass-capsule-bg: rgb(0 0 0 / 0.08);
   --glass-shadow: 0 16px 36px rgb(20 20 30 / 0.1);
   --glass-shadow-panel: 0 24px 56px rgb(20 20 30 / 0.14);
@@ -45,6 +47,7 @@
   --glass-panel-grad: linear-gradient(165deg, rgb(255 255 255 / 0.2) 0%, rgb(255 255 255 / 0.07) 45%, rgb(20 20 20 / 0.2) 100%);
   --glass-slab-grad: linear-gradient(160deg, rgb(255 255 255 / 0.14) 0%, rgb(255 255 255 / 0.05) 50%, rgb(10 10 10 / 0.3) 100%);
   --glass-tile-bg: rgb(255 255 255 / 0.07);
+  --glass-modal-grad: var(--glass-panel-grad);
   --glass-capsule-bg: rgb(0 0 0 / 0.28);
   --glass-shadow: 0 16px 36px rgb(0 0 0 / 0.3);
   --glass-shadow-panel: 0 24px 56px rgb(0 0 0 / 0.38);
@@ -88,6 +91,7 @@ body {
 .glass-tile { background: var(--glass-tile-bg); transition: background .18s ease; }
 .glass-capsule { background: var(--glass-capsule-bg); }
 .glass-slab { background: var(--glass-slab-grad); box-shadow: var(--glass-shadow-slab); }
+.glass-modal { background: var(--glass-modal-grad); }
 .scroll-fade { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent); }
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }

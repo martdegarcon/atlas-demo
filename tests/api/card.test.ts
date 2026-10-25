@@ -25,7 +25,7 @@ beforeEach(() => {
 
 describe("сводка поездки", () => {
   it("города, даты, год", () => {
-    expect(tripSummary(makeTrip())).toBe("3 города · 1–9 мая · 2026")
+    expect(tripSummary(makeTrip())).toBe("3 места · 1–9 мая · 2026")
     expect(tripSummary(makeTrip({ kind: "country", period: "" }))).toBe("2026")
   })
 })

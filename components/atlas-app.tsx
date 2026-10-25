@@ -6,12 +6,13 @@ import gsap from "gsap"
 import { api, ApiError } from "@/lib/api-client"
 import { reloadPage } from "@/lib/browser"
 import { STORAGE_LANG_KEY, t, type DictKey, type Lang } from "@/lib/i18n"
+import { citiesWithoutCountry, reverseCountry, withCountries } from "@/lib/geo"
 import { findCity, sortTrips, type City, type Entry, type Trip } from "@/lib/types"
 import { AddPlace } from "./add-place"
 import { cn, CityForm, EntryForm, normalizeBackup, Sheet, TripForm } from "./editors"
 import { Button, TextField, useFitVisualViewport } from "./ui"
 import { LIMITS } from "@/lib/limits"
-import { DotsIcon, GlobeIcon, MagnifyingGlassIcon, MapPinIcon, NoteIcon, PathIcon, PlusIcon, XIcon } from "./icons"
+import { CaretLeftIcon, CaretRightIcon, DotsIcon, GlobeIcon, MagnifyingGlassIcon, MapPinIcon, NoteIcon, PathIcon, PlusIcon, XIcon } from "./icons"
 import { MapPanel, MorePanel, NotesPanel, PlacePanel, TripsPanel } from "./panels"
 import { ShareSheet } from "./share-sheet"
 
@@ -98,6 +99,8 @@ export function AtlasApp({ initialTrips, isAdmin, loginEnabled, initialTripId = 
   const [theme, setTheme, resolvedTheme] = useTheme()
   const [tab, setTab] = useState<Tab>("map")
   const [open, setOpen] = useState(!!initialTrip)
+  // Панель убрана совсем — на экране только глобус (и вкладки, чтобы вернуть её)
+  const [hidden, setHidden] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [editor, setEditor] = useState<Editor>(startWithLogin && !isAdmin ? { type: "login" } : null)
@@ -198,9 +201,59 @@ export function AtlasApp({ initialTrips, isAdmin, loginEnabled, initialTripId = 
     showToast(message, undoable ? { label: tr("undo"), fn: () => applyAll(prev, tr("saved"), false) } : undefined)
   }
 
+  /* ---------- страна у старых точек ----------
+     Раньше страна хранилась только у тура, а тур может идти через несколько
+     стран. Новые точки получают страну сразу из поиска, а у старых владельцу
+     в фоне её досчитывает геокодер — по одной точке в секунду (его лимит). */
+  const tripsRef = useRef(trips)
+  tripsRef.current = trips
+  useEffect(() => {
+    if (!isAdmin) return
+    const ctrl = new AbortController()
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+    ;(async () => {
+      await wait(4000)
+      const todo = citiesWithoutCountry(tripsRef.current)
+      let found = new Map<string, Pick<City, "country" | "countryCode">>()
+      // сохраняем потуро — через общую очередь, по свежему состоянию
+      const flush = () => {
+        if (!found.size) return
+        const batch = found
+        found = new Map()
+        queue.current = queue.current.then(async () => {
+          if (ctrl.signal.aborted) return
+          const { trips: next, changed } = withCountries(tripsRef.current, batch)
+          if (!changed.length) return
+          tripsRef.current = next
+          setTrips(next)
+          for (const id of changed) {
+            const trip = next.find((x) => x.id === id)
+            if (trip) await api.saveTrip(trip).catch(() => {})
+          }
+        })
+      }
+      let prevTrip: string | null = null
+      for (const item of todo) {
+        if (ctrl.signal.aborted) return
+        if (prevTrip && item.tripId !== prevTrip) flush()
+        prevTrip = item.tripId
+        try {
+          const r = await reverseCountry(item.city.lat, item.city.lng, item.lang, ctrl.signal)
+          if (r) found.set(item.city.id, r)
+        } catch {
+          if (ctrl.signal.aborted) return
+        }
+        await wait(1100)
+      }
+      flush()
+    })()
+    return () => ctrl.abort()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin])
+
   /* ---------- навигация ---------- */
 
-  const bottomInset = NAV_OFFSET + (open ? Math.round(viewportH * SHEET_VH) : PEEK)
+  const bottomInset = NAV_OFFSET + (hidden ? 0 : open ? Math.round(viewportH * SHEET_VH) : PEEK)
   function clearFocus() { setActiveCountry(null); setActiveTripId(null); setSelectedCityId(null) }
   function selectCountry(country: string) { setActiveCountry(country); setActiveTripId(null); setSelectedCityId(null); settle(true) }
   function selectTrip(id: string) {
@@ -329,23 +382,28 @@ export function AtlasApp({ initialTrips, isAdmin, loginEnabled, initialTripId = 
      Теперь жест ведётся в ref, а стейт только рисует высоту. */
   const openHeight = Math.round(viewportH * SHEET_VH)
   const [animH, setAnimH] = useState<number | null>(null)
-  const sheetHeight = animH ?? (open ? openHeight : PEEK)
+  const sheetHeight = animH ?? (hidden ? 0 : open ? openHeight : PEEK)
   const heightRef = useRef(sheetHeight)
   heightRef.current = sheetHeight
   const openRef = useRef(open)
   openRef.current = open
+  const hiddenRef = useRef(hidden)
+  hiddenRef.current = hidden
   const tween = useRef<gsap.core.Tween | null>(null)
   const gesture = useRef<{ startY: number; startH: number; dy: number } | null>(null)
 
-  function settle(nextOpen: boolean) {
+  // Положения шторки: true — развёрнута, false — свёрнута до заголовка, "hidden" — убрана
+  function settle(next: boolean | "hidden") {
     tween.current?.kill()
     const from = heightRef.current
-    const to = nextOpen ? Math.round(window.innerHeight * SHEET_VH) : PEEK
-    setOpen(nextOpen)
-    if (Math.abs(from - to) < 1) { setAnimH(null); return }
+    const to = next === "hidden" ? 0 : next ? Math.round(window.innerHeight * SHEET_VH) : PEEK
+    setHidden(next === "hidden")
+    setOpen(next === true)
+    // на компьютере панель — колонка, её высота не анимируется (сдвиг делает CSS)
+    if (Math.abs(from - to) < 1 || window.matchMedia("(min-width: 768px)").matches) { setAnimH(null); return }
     const s = { h: from }
     setAnimH(from)
-    tween.current = gsap.to(s, { h: to, duration: 0.5, ease: "back.out(1.3)", onUpdate: () => setAnimH(s.h), onComplete: () => setAnimH(null) })
+    tween.current = gsap.to(s, { h: to, duration: next === "hidden" ? 0.35 : 0.5, ease: next === "hidden" ? "power2.in" : "back.out(1.3)", onUpdate: () => setAnimH(s.h), onComplete: () => setAnimH(null) })
   }
   useEffect(() => () => { tween.current?.kill() }, [])
 
@@ -361,16 +419,20 @@ export function AtlasApp({ initialTrips, isAdmin, loginEnabled, initialTripId = 
     const g = gesture.current
     if (!g) return
     g.dy = e.clientY - g.startY
-    setAnimH(Math.min(Math.max(g.startH - g.dy, PEEK), openHeight))
+    // ниже свёрнутого положения — можно, так панель убирается совсем
+    setAnimH(Math.min(Math.max(g.startH - g.dy, 0), openHeight))
   }
   function onPointerUp() {
     const g = gesture.current
     if (!g) return
     gesture.current = null
+    const h = heightRef.current
     if (Math.abs(g.dy) < 6) settle(!openRef.current)
+    // утянули ниже свёрнутого положения — убрать совсем
+    else if (h < PEEK * 0.75) settle("hidden")
     else if (g.dy < -30) settle(true)
-    else if (g.dy > 30) settle(false)
-    else settle(heightRef.current > (PEEK + openHeight) / 2)
+    else if (g.dy > 30) settle(g.startH <= PEEK + 1 ? "hidden" : false)
+    else settle(h > (PEEK + openHeight) / 2)
   }
 
   /* ---------- шторки-редакторы ---------- */
@@ -413,7 +475,7 @@ export function AtlasApp({ initialTrips, isAdmin, loginEnabled, initialTripId = 
   const aside = isWide && tab === "map" && selectedCityId ? findCity(trips, selectedCityId) : null
   const sidebarW = isLarge ? 420 : 380
   const globePadding = isDesktop
-    ? { top: 0, bottom: 0, left: sidebarW + 32, right: aside ? 452 : 0 }
+    ? { top: 0, bottom: 0, left: hidden ? 0 : sidebarW + 32, right: aside ? 452 : 0 }
     : { top: 0, bottom: bottomInset, left: 0, right: 0 }
 
   // Колонка слева на планшете/ноутбуке: поиск, вкладки и панель — одна стопка на всю высоту
@@ -422,7 +484,7 @@ export function AtlasApp({ initialTrips, isAdmin, loginEnabled, initialTripId = 
   return (
     <main className="fixed inset-0 overflow-hidden" style={{ background: "var(--space)" }} data-hydrated={hydrated || undefined}>
       <Globe trips={trips} activeTripId={activeTripId} activeCountry={activeCountry} selectedCityId={selectedCityId}
-        onSelectCity={selectCity} onSelectCountry={selectCountry} padding={globePadding} dark={resolvedTheme === "dark"} />
+        onSelectCity={selectCity} onSelectCountry={selectCountry} padding={globePadding} dark={resolvedTheme === "dark"} lang={lang} />
 
       <button type="button" onClick={() => setSearchOpen(true)}
         className={cn("focus-ring glass absolute inset-x-3 top-[calc(env(safe-area-inset-top)+12px)] z-20 flex h-12 items-center gap-2.5 px-4 text-sm text-foreground/70 md:top-4", col)}>
@@ -439,8 +501,10 @@ export function AtlasApp({ initialTrips, isAdmin, loginEnabled, initialTripId = 
         </button>
       )}
 
-      <section aria-label={tr("panelAria")} data-sheet={isDesktop ? "open" : animH !== null ? "moving" : open ? "open" : "closed"}
-        className={cn("glass-panel absolute inset-x-3 bottom-[var(--sheet-bottom)] z-20 flex h-[var(--sheet-h)] flex-col overflow-hidden rounded-[32px] md:top-[148px] md:bottom-4 md:h-auto", col)}
+      <section aria-label={tr("panelAria")} aria-hidden={hidden || undefined} inert={hidden && animH === null ? true : undefined}
+        data-sheet={animH !== null ? "moving" : hidden ? "hidden" : isDesktop || open ? "open" : "closed"}
+        className={cn("glass-panel absolute inset-x-3 bottom-[var(--sheet-bottom)] z-20 flex h-[var(--sheet-h)] flex-col overflow-hidden rounded-[32px] md:top-[148px] md:bottom-4 md:h-auto md:transition-[transform,opacity] md:duration-500 md:ease-[cubic-bezier(.2,.8,.2,1)]", col,
+          hidden && "md:pointer-events-none md:-translate-x-[calc(100%+24px)] md:opacity-0", hidden && animH === null && "max-md:invisible")}
         style={{ "--sheet-bottom": `calc(${NAV_OFFSET + 8}px + env(safe-area-inset-bottom))`, "--sheet-h": `${sheetHeight}px` } as React.CSSProperties}>
         <button type="button" aria-label={open ? tr("panelCollapseAria") : tr("panelExpandAria")} aria-expanded={open}
           onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
@@ -449,6 +513,7 @@ export function AtlasApp({ initialTrips, isAdmin, loginEnabled, initialTripId = 
           <span className="h-1 w-10 rounded-full bg-current opacity-30" />
         </button>
         <div className="hidden h-5 shrink-0 md:block" />
+
 
         {tab === "map" ? (
           <MapPanel open={open || isDesktop} trips={trips} activeCountry={activeCountry} activeTripId={activeTripId} selectedCityId={selectedCityId}
@@ -469,13 +534,36 @@ export function AtlasApp({ initialTrips, isAdmin, loginEnabled, initialTripId = 
         )}
       </section>
 
+      {/* компьютер: язычок у правого края колонки — убрать панель */}
+      {!hidden && (
+        <button type="button" onClick={() => settle("hidden")} aria-label={tr("panelHideAria")} title={tr("panelHideAria")}
+          className="focus-ring glass absolute top-[156px] left-[404px] z-20 hidden size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:text-foreground md:grid lg:left-[444px]">
+          <CaretLeftIcon size={15} />
+        </button>
+      )}
+
+      {/* панель убрана — кнопка вернуть: на телефоне над вкладками (можно и потянуть вверх), на компьютере на месте колонки */}
+      {hidden && animH === null && (
+        <button type="button" onClick={(e) => { if (e.detail === 0) settle(false) }} aria-label={tr("panelShowAria")}
+          onPointerDown={(e) => { gesture.current = { startY: e.clientY, startH: 0, dy: 0 } }}
+          // тап — вернуть свёрнутой, потянуть вверх — сразу развернуть
+          onPointerUp={(e) => { const g = gesture.current; gesture.current = null; if (g) settle(g.startY - e.clientY > 30 ? true : false) }}
+          className={cn("atlas-backdrop focus-ring glass absolute bottom-[var(--sheet-bottom)] left-1/2 z-20 flex h-10 -translate-x-1/2 touch-none items-center gap-2 rounded-full px-4 text-[11px] uppercase tracking-[0.18em] text-foreground/80",
+            "md:top-[148px] md:bottom-auto md:left-4 md:translate-x-0")}
+          style={{ "--sheet-bottom": `calc(${NAV_OFFSET + 8}px + env(safe-area-inset-bottom))` } as React.CSSProperties}>
+          <span className="h-1 w-6 rounded-full bg-current opacity-40 md:hidden" />
+          {tr("atlasTitle")}
+          <CaretRightIcon size={14} className="hidden md:block" />
+        </button>
+      )}
+
       <nav aria-label={tr("navAria")} className={cn("glass absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+8px)] z-30 rounded-[32px] md:top-[76px] md:bottom-auto md:rounded-full", col)}>
         <ul className="grid grid-cols-4 gap-1 p-1">
           {tabs.map(({ id, label, Icon }) => {
             const active = tab === id
             return (
               <li key={id}>
-                <button type="button" onClick={() => setTab(id)} aria-current={active ? "page" : undefined}
+                <button type="button" onClick={() => { setTab(id); if (hiddenRef.current) settle(false) }} aria-current={active ? "page" : undefined}
                   className={cn("focus-ring relative flex h-14 w-full flex-col items-center justify-center gap-1 rounded-[26px] text-[10px] uppercase tracking-widest transition-colors md:h-10 md:flex-row md:gap-1.5 md:rounded-full md:tracking-wider", active ? "glass-capsule text-foreground" : "text-muted-foreground hover:text-foreground")}>
                   <Icon className={cn("size-5 md:size-4", active && "text-[var(--atlas-accent)]")} strokeWidth={active ? 2.1 : 1.75} />
                   {tr(label)}
@@ -558,8 +646,8 @@ function QuickSearch({ trips, lang, onClose, onSelectCity, onSelectTrip }: {
   const tripResults = query ? trips.filter((x) => x.title.toLowerCase().includes(query) || x.country.toLowerCase().includes(query)) : []
   const item = "focus-ring glass-tile flex items-center gap-2.5 rounded-[18px] p-3 text-left"
   return (
-    <div ref={boxRef} className="atlas-backdrop fixed inset-0 z-50 flex flex-col bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="atlas-sheet glass-panel mx-3 mt-[calc(env(safe-area-inset-top)+12px)] flex max-h-[70vh] flex-col overflow-hidden rounded-[28px] md:mx-auto md:mt-[12vh] md:w-[560px]" onClick={(e) => e.stopPropagation()}>
+    <div ref={boxRef} className="atlas-backdrop fixed inset-0 z-50 flex flex-col bg-black/25 backdrop-blur-sm dark:bg-black/50" onClick={onClose}>
+      <div className="atlas-sheet glass-panel glass-modal mx-3 mt-[calc(env(safe-area-inset-top)+12px)] flex max-h-[70vh] flex-col overflow-hidden rounded-[28px] md:mx-auto md:mt-[12vh] md:w-[560px]" onClick={(e) => e.stopPropagation()}>
         <div className="flex shrink-0 items-center gap-2.5 p-3">
           <MagnifyingGlassIcon className="size-4 shrink-0 text-muted-foreground" />
           <input autoFocus value={q} maxLength={80} onChange={(e) => setQ(e.target.value)} placeholder={t(lang, "searchPlaceholder")} className="min-w-0 flex-1 bg-transparent text-base outline-none md:text-sm placeholder:text-muted-foreground" />

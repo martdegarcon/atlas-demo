@@ -38,7 +38,7 @@ afterEach(() => vi.clearAllMocks())
 describe("гость", () => {
   it("видит атлас, но не инструменты правки", async () => {
     render(<AtlasApp initialTrips={demoTrips} isAdmin={false} loginEnabled />)
-    expect(screen.queryByRole("button", { name: "Добавить место" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Новое место" })).not.toBeInTheDocument()
     await userEvent.click(within(panel()).getByText("Япония"))
     expect(screen.queryByRole("button", { name: "Редактировать" })).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Поделиться" })).toBeInTheDocument()
@@ -216,6 +216,48 @@ describe("шторка", () => {
     })
     expect(handle()).toHaveAttribute("aria-expanded", "false")
   })
+  it("смахнуть вниз из свёрнутого — панель убирается совсем, вернуть кнопкой или вкладкой", async () => {
+    render(<AtlasApp initialTrips={demoTrips} isAdmin={false} loginEnabled />)
+    const region = () => document.querySelector<HTMLElement>('section[aria-label="Мой атлас"]')!
+    act(() => {
+      fireEvent.pointerDown(handle(), { clientY: 600, pointerId: 1 })
+      fireEvent.pointerMove(handle(), { clientY: 700, pointerId: 1 })
+      fireEvent.pointerUp(handle(), { clientY: 700, pointerId: 1 })
+    })
+    await waitFor(() => expect(region()).toHaveAttribute("data-sheet", "hidden"))
+    expect(region()).toHaveAttribute("aria-hidden", "true")
+    // кнопка «Атлас»: тап — вернуть свёрнутой
+    const show = screen.getByRole("button", { name: "Показать панель" })
+    act(() => {
+      fireEvent.pointerDown(show, { clientY: 800, pointerId: 2 })
+      fireEvent.pointerUp(show, { clientY: 800, pointerId: 2 })
+    })
+    await waitFor(() => expect(region()).toHaveAttribute("data-sheet", "closed"))
+    expect(screen.queryByRole("button", { name: "Показать панель" })).not.toBeInTheDocument()
+    // снова убрать и вернуть вкладкой
+    act(() => {
+      fireEvent.pointerDown(handle(), { clientY: 600, pointerId: 1 })
+      fireEvent.pointerMove(handle(), { clientY: 900, pointerId: 1 })
+      fireEvent.pointerUp(handle(), { clientY: 900, pointerId: 1 })
+    })
+    await waitFor(() => expect(region()).toHaveAttribute("data-sheet", "hidden"))
+    await userEvent.click(screen.getByRole("button", { name: /Поездки/ }))
+    await waitFor(() => expect(region()).toHaveAttribute("data-sheet", "closed"))
+  })
+  it("потянуть кнопку «Атлас» вверх — сразу развёрнутая панель", async () => {
+    render(<AtlasApp initialTrips={demoTrips} isAdmin={false} loginEnabled />)
+    act(() => {
+      fireEvent.pointerDown(handle(), { clientY: 600, pointerId: 1 })
+      fireEvent.pointerMove(handle(), { clientY: 800, pointerId: 1 })
+      fireEvent.pointerUp(handle(), { clientY: 800, pointerId: 1 })
+    })
+    const show = await screen.findByRole("button", { name: "Показать панель" })
+    act(() => {
+      fireEvent.pointerDown(show, { clientY: 800, pointerId: 2 })
+      fireEvent.pointerUp(show, { clientY: 700, pointerId: 2 })
+    })
+    await waitFor(() => expect(handle()).toHaveAttribute("aria-expanded", "true"))
+  })
   it("лишний pointerup без pointerdown ничего не ломает", () => {
     render(<AtlasApp initialTrips={demoTrips} isAdmin={false} loginEnabled />)
     act(() => { fireEvent.pointerUp(handle(), { clientY: 100 }) })
@@ -237,8 +279,8 @@ describe("навигация", () => {
   it("быстрый поиск находит город и поездку", async () => {
     const user = userEvent.setup()
     render(<AtlasApp initialTrips={demoTrips} isAdmin={false} loginEnabled />)
-    await user.click(screen.getByRole("button", { name: /Найти город/ }))
-    await user.type(screen.getByPlaceholderText("Найти город или поездку"), "КИО")
+    await user.click(screen.getByRole("button", { name: /Найти место/ }))
+    await user.type(screen.getByPlaceholderText("Найти место или поездку"), "КИО")
     expect(screen.getByText("Киото")).toBeInTheDocument()
     expect(screen.getByText("Токио")).toBeInTheDocument()
     await user.click(screen.getByText("Киото"))
@@ -247,11 +289,11 @@ describe("навигация", () => {
   it("поиск без результатов и закрытие по Esc", async () => {
     const user = userEvent.setup()
     render(<AtlasApp initialTrips={demoTrips} isAdmin={false} loginEnabled />)
-    await user.click(screen.getByRole("button", { name: /Найти город/ }))
-    await user.type(screen.getByPlaceholderText("Найти город или поездку"), "Марс")
+    await user.click(screen.getByRole("button", { name: /Найти место/ }))
+    await user.type(screen.getByPlaceholderText("Найти место или поездку"), "Марс")
     expect(screen.getByText("Ничего не нашлось")).toBeInTheDocument()
     await user.keyboard("{Escape}")
-    expect(screen.queryByPlaceholderText("Найти город или поездку")).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText("Найти место или поездку")).not.toBeInTheDocument()
   })
   it("вкладки и «назад» по уровням", async () => {
     const user = userEvent.setup()
@@ -321,7 +363,7 @@ describe("добавление мест владельцем", () => {
   it("страна-отметка, а потом первый город заменяет отметку", async () => {
     const user = userEvent.setup()
     render(<AtlasApp initialTrips={trips()} isAdmin loginEnabled />)
-    await user.click(screen.getByRole("button", { name: "Добавить место" }))
+    await user.click(screen.getByRole("button", { name: "Новое место" }))
     await user.click(screen.getByRole("button", { name: "Страна" }))
     await user.type(screen.getByPlaceholderText("Название страны"), "Арм")
     await user.click(await screen.findByText("Армения", { selector: "span.text-xs" }))
@@ -331,11 +373,11 @@ describe("добавление мест владельцем", () => {
     expect(country).toMatchObject({ kind: "country", title: "Армения" })
     expect(within(panel()).getByRole("heading", { level: 1 })).toHaveTextContent("Армения")
 
-    await user.click(screen.getByRole("button", { name: "Добавить место" }))
-    await user.type(await screen.findByPlaceholderText("Название города"), "Ере")
+    await user.click(screen.getByRole("button", { name: "Новое место" }))
+    await user.type(await screen.findByPlaceholderText("Город, остров, бухта…"), "Ере")
     await user.click(await screen.findByText("Ереван, Армения"))
     await user.selectOptions(screen.getByRole("combobox"), country.id)
-    await user.click(screen.getByRole("button", { name: "Добавить город" }))
+    await user.click(screen.getByRole("button", { name: "Добавить место" }))
     await waitFor(() => expect(api.saveTrip).toHaveBeenCalledTimes(2))
     const updated = api.saveTrip.mock.calls[1][0] as Trip
     expect(updated.kind).toBeUndefined()
@@ -345,11 +387,11 @@ describe("добавление мест владельцем", () => {
   it("город в существующую поездку — в конец маршрута", async () => {
     const user = userEvent.setup()
     render(<AtlasApp initialTrips={trips()} isAdmin loginEnabled />)
-    await user.click(screen.getByRole("button", { name: "Добавить место" }))
-    await user.type(screen.getByPlaceholderText("Название города"), "Ере")
+    await user.click(screen.getByRole("button", { name: "Новое место" }))
+    await user.type(screen.getByPlaceholderText("Город, остров, бухта…"), "Ере")
     await user.click(await screen.findByText("Ереван, Армения"))
     await user.selectOptions(screen.getByRole("combobox"), "georgia")
-    await user.click(screen.getByRole("button", { name: "Добавить город" }))
+    await user.click(screen.getByRole("button", { name: "Добавить место" }))
     await waitFor(() => expect(api.saveTrip).toHaveBeenCalled())
     expect((api.saveTrip.mock.calls[0][0] as Trip).cities.map((c) => c.name)).toEqual(["Тбилиси", "Казбеги", "Батуми", "Ереван"])
     expect(within(panel()).getByRole("heading", { level: 1 })).toHaveTextContent("Ереван")

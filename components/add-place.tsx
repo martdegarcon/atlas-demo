@@ -159,6 +159,14 @@ export function AddPlace({ open, trips, lang, onClose, onAddCity }: {
 
   const shortName = (r: GeoResult) => r.name || r.display_name.split(",")[0]
   const countryName = (r: GeoResult) => r.address?.country || r.display_name.split(",").pop()?.trim() || r.display_name
+  // страна и её код — у самой точки: тур может идти через несколько стран
+  const countryOf = (r: GeoResult): Pick<City, "country" | "countryCode"> => {
+    const code = r.address?.country_code?.toLowerCase()
+    return {
+      ...(r.address?.country ? { country: clip(r.address.country, LIMITS.country) } : {}),
+      ...(code && /^[a-z]{2}$/.test(code) ? { countryCode: code } : {}),
+    }
+  }
 
   const yearError = yearMessage(lang, checkYear(newYear))
   const titleOk = newTitle.trim().length > 0
@@ -170,6 +178,7 @@ export function AddPlace({ open, trips, lang, onClose, onAddCity }: {
     const city: City = {
       id: newId(), name: clip(shortName(picked), LIMITS.cityName), lng: Number(picked.lon), lat: Number(picked.lat),
       date: date.trim() || "—",
+      ...countryOf(picked),
       ...(note.trim() ? { entries: [{ id: newId(), text: note.trim() }] } : {}),
     }
     if (tripChoice === "__new__") {
@@ -186,6 +195,7 @@ export function AddPlace({ open, trips, lang, onClose, onAddCity }: {
     const name = clip(countryName(picked), LIMITS.country)
     const place: City = {
       id: newId(), name, lng: Number(picked.lon), lat: Number(picked.lat), date: "",
+      ...countryOf(picked),
       ...(note.trim() ? { entries: [{ id: newId(), text: note.trim() }] } : {}),
     }
     onAddCity(place, null, {
@@ -203,9 +213,9 @@ export function AddPlace({ open, trips, lang, onClose, onAddCity }: {
   )
 
   return (
-    <div ref={backdropRef} className="fixed inset-0 z-50 flex flex-col justify-end bg-black/50 backdrop-blur-sm md:justify-center md:p-6" onClick={onClose}>
+    <div ref={backdropRef} className="fixed inset-0 z-50 flex flex-col justify-end bg-black/25 backdrop-blur-sm dark:bg-black/50 md:justify-center md:p-6" onClick={onClose}>
       <section ref={sheetRef} role="dialog" aria-modal="true" aria-label={t(lang, "addPlaceTitle")}
-        className="glass-panel relative z-10 flex max-h-[calc(100%-24px)] md:max-h-full flex-col overflow-hidden rounded-t-[32px] pb-[env(safe-area-inset-bottom)] md:mx-auto md:w-[480px] md:rounded-[32px]" onClick={(e) => e.stopPropagation()}>
+        className="glass-panel glass-modal relative z-10 flex max-h-[calc(100%-24px)] md:max-h-full flex-col overflow-hidden rounded-t-[32px] pb-[env(safe-area-inset-bottom)] md:mx-auto md:w-[480px] md:rounded-[32px]" onClick={(e) => e.stopPropagation()}>
         <div className="flex shrink-0 items-center gap-3 px-4 pt-4 pb-2">
           {picked ? (
             <button type="button" onClick={() => setPicked(null)} aria-label={t(lang, "addPlaceBackAria")} className={iconBtn}><CaretLeftIcon className="size-4" /></button>

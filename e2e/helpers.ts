@@ -47,7 +47,7 @@ export async function login(page: Page) {
   await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Войти" }).click()])
   await ready(page)
   // после входа страница перезагружается — с правами владельца появляется «+»
-  await expect(page.getByRole("button", { name: "Добавить место" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Новое место" })).toBeVisible()
 }
 
 export async function expandPanel(page: Page) {

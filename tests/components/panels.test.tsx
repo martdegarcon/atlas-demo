@@ -23,12 +23,12 @@ describe("MapPanel — уровни фокуса", () => {
     mapPanel()
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Атлас(4)")
     expect(screen.getByText("4 страны")).toBeInTheDocument()
-    expect(screen.getByText("14 городов")).toBeInTheDocument()
+    expect(screen.getByText("14 мест")).toBeInTheDocument()
     expect(screen.getAllByText("скрыта")).toHaveLength(1)
   })
   it("страна: поездки страны с таймлайном", async () => {
     const p = mapPanel({ activeCountry: "Япония" })
-    expect(screen.getByText("1 поездка · 6 городов")).toBeInTheDocument()
+    expect(screen.getByText("1 поездка · 6 мест")).toBeInTheDocument()
     await userEvent.click(screen.getByText("Киото"))
     expect(p.onSelectCity).toHaveBeenCalledWith("kyoto")
     await userEvent.click(screen.getByRole("button", { name: "Назад" }))
@@ -43,7 +43,7 @@ describe("MapPanel — уровни фокуса", () => {
   })
   it("город без заметок", () => {
     mapPanel({ activeCountry: "Португалия", activeTripId: "portugal-2024", selectedCityId: "porto" })
-    expect(screen.getByText("Заметок про этот город пока нет.")).toBeInTheDocument()
+    expect(screen.getByText("Заметок про это место пока нет.")).toBeInTheDocument()
   })
 })
 
@@ -97,8 +97,8 @@ describe("TripsPanel / NotesPanel", () => {
   it("поездки с обложкой и тегом городов", async () => {
     const onSelect = vi.fn()
     render(<TripsPanel trips={trips} lang="ru" onSelectTrip={onSelect} />)
-    expect(screen.getByText("6 городов")).toBeInTheDocument()
-    expect(screen.getByText("2 города")).toBeInTheDocument()
+    expect(screen.getByText("6 мест")).toBeInTheDocument()
+    expect(screen.getByText("2 места")).toBeInTheDocument()
     await userEvent.click(screen.getByText("Португалия"))
     expect(onSelect).toHaveBeenCalledWith("portugal-2024")
   })
@@ -188,7 +188,7 @@ describe("MorePanel", () => {
   it("статистика", () => {
     more()
     const stats = screen.getByText("поездки").parentElement!.parentElement!
-    expect(stats.textContent).toBe("4поездки4страны14города")
+    expect(stats.textContent).toBe("4поездки4страны14места")
   })
 })
 

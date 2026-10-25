@@ -6,7 +6,7 @@ type TripRow = {
   id: string; slug: string; title: string; country: string; year: number; period: string
   kind: string | null; is_public: boolean; created_at: Date | string; updated_at: Date | string
 }
-type CityRow = { id: string; trip_id: string; position: number; name: string; lat: number; lng: number; date: string }
+type CityRow = { id: string; trip_id: string; position: number; name: string; lat: number; lng: number; date: string; country: string | null; country_code: string | null }
 type EntryRow = { id: string; city_id: string; position: number; time: string | null; text: string | null; photo: string | null }
 
 const iso = (v: Date | string) => (v instanceof Date ? v.toISOString() : new Date(v).toISOString())
@@ -26,7 +26,7 @@ function assemble(trips: TripRow[], cities: CityRow[], entries: EntryRow[]): Tri
   for (const c of cities) {
     const list = citiesByTrip.get(c.trip_id) || []
     const ents = entriesByCity.get(c.id)
-    list.push({ id: c.id, name: c.name, lat: Number(c.lat), lng: Number(c.lng), date: c.date, ...(ents ? { entries: ents } : {}) })
+    list.push({ id: c.id, name: c.name, lat: Number(c.lat), lng: Number(c.lng), date: c.date, ...(c.country ? { country: c.country } : {}), ...(c.country_code ? { countryCode: c.country_code } : {}), ...(ents ? { entries: ents } : {}) })
     citiesByTrip.set(c.trip_id, list)
   }
   return sortTrips(
@@ -106,14 +106,14 @@ export async function saveTrip(q: Query, trip: Trip): Promise<void> {
   if (trip.cities.length) {
     const params: unknown[] = []
     const rows = trip.cities.map((c, i) => {
-      params.push(c.id, trip.id, i, c.name, c.lat, c.lng, c.date || "")
-      const b = i * 7
-      return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6}, $${b + 7})`
+      params.push(c.id, trip.id, i, c.name, c.lat, c.lng, c.date || "", c.country || null, c.countryCode || null)
+      const b = i * 9
+      return `(${Array.from({ length: 9 }, (_, k) => `$${b + k + 1}`).join(", ")})`
     })
     await q(
-      `INSERT INTO cities (id, trip_id, position, name, lat, lng, date) VALUES ${rows.join(", ")}
+      `INSERT INTO cities (id, trip_id, position, name, lat, lng, date, country, country_code) VALUES ${rows.join(", ")}
        ON CONFLICT (id) DO UPDATE SET trip_id = EXCLUDED.trip_id, position = EXCLUDED.position, name = EXCLUDED.name,
-         lat = EXCLUDED.lat, lng = EXCLUDED.lng, date = EXCLUDED.date`,
+         lat = EXCLUDED.lat, lng = EXCLUDED.lng, date = EXCLUDED.date, country = EXCLUDED.country, country_code = EXCLUDED.country_code`,
       params
     )
   }

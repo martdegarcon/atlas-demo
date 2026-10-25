@@ -31,9 +31,9 @@ export function Sheet({ title, lang, onClose, children }: { title: string; lang:
     return () => window.removeEventListener("keydown", onKey)
   }, [])
   return (
-    <div ref={boxRef} className="atlas-backdrop fixed inset-0 z-50 flex flex-col justify-end bg-black/50 backdrop-blur-sm md:justify-center md:p-6" onClick={onClose}>
+    <div ref={boxRef} className="atlas-backdrop fixed inset-0 z-50 flex flex-col justify-end bg-black/25 backdrop-blur-sm dark:bg-black/50 md:justify-center md:p-6" onClick={onClose}>
       <section role="dialog" aria-modal="true" aria-label={title}
-        className="atlas-sheet glass-panel relative z-10 flex max-h-[calc(100%-24px)] md:max-h-full flex-col overflow-hidden rounded-t-[32px] pb-[env(safe-area-inset-bottom)] md:mx-auto md:w-[480px] md:rounded-[32px]"
+        className="atlas-sheet glass-panel glass-modal relative z-10 flex max-h-[calc(100%-24px)] md:max-h-full flex-col overflow-hidden rounded-t-[32px] pb-[env(safe-area-inset-bottom)] md:mx-auto md:w-[480px] md:rounded-[32px]"
         onClick={(e) => e.stopPropagation()}>
         <div className="flex shrink-0 items-center gap-3 px-4 pt-4 pb-2">
           <span className="size-9" />
@@ -236,6 +236,8 @@ export function normalizeBackup(data: unknown): Trip[] | null {
         id: okId(c.id) ? (c.id as string) : newId(),
         name: str(c.name, LIMITS.cityName), lat: c.lat, lng: c.lng,
         date: typeof c.date === "string" ? str(c.date, LIMITS.date) : "—",
+        ...(str(c.country, LIMITS.country) ? { country: str(c.country, LIMITS.country) } : {}),
+        ...(typeof c.countryCode === "string" && /^[a-z]{2}$/.test(c.countryCode) ? { countryCode: c.countryCode } : {}),
         ...(entries.length ? { entries } : {}),
       })
     }

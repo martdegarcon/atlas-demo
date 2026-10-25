@@ -3,6 +3,7 @@
 import maplibregl from "@/lib/maplibre"
 import { ArrayBufferTarget, Muxer } from "mp4-muxer"
 import { loadFonts, loadImage, openOffscreenMap, settled } from "./offscreen-map"
+import { brandName, tripSummaryText, type Lang } from "./i18n"
 import type { Trip } from "./types"
 
 // Видео-пролёт по поездке. Собирается целиком в браузере:
@@ -188,14 +189,8 @@ function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: numb
   ctx.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, x, y, w, h)
 }
 
-function summary(trip: Trip) {
-  const n = trip.cities.length
-  const m10 = n % 10, m100 = n % 100
-  const word = m10 === 1 && m100 !== 11 ? "город" : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? "города" : "городов"
-  return [trip.kind === "country" ? null : `${n} ${word}`, trip.period, String(trip.year)].filter(Boolean).join(" · ")
-}
-
-export function drawOverlay(ctx: CanvasRenderingContext2D, map: maplibregl.Map, trip: Trip, fr: Frame, photos: (HTMLImageElement | null)[], progress: number) {
+export function drawOverlay(ctx: CanvasRenderingContext2D, map: maplibregl.Map, trip: Trip, fr: Frame, photos: (HTMLImageElement | null)[], progress: number, lang: Lang = "ru") {
+  const summary = (t: Trip) => tripSummaryText(lang, t)
   const W = VIDEO_W, H = VIDEO_H, n = trip.cities.length
 
   // затемнение сверху и снизу — чтобы текст читался на любой карте
@@ -246,7 +241,7 @@ export function drawOverlay(ctx: CanvasRenderingContext2D, map: maplibregl.Map, 
   ctx.textBaseline = "alphabetic"
   ctx.fillStyle = ACCENT
   ctx.letterSpacing = "4px"
-  ctx.fillText("АТЛАС", 36, 52)
+  ctx.fillText(brandName(lang), 36, 52)
   ctx.fillStyle = "rgba(244,241,236,.75)"
   const head = fr.current >= 0 && fr.endAlpha === 0 ? `${String(fr.current + 1).padStart(2, "0")} / ${String(n).padStart(2, "0")}` : String(trip.year)
   ctx.textAlign = "right"
@@ -351,7 +346,7 @@ async function pickCodec(): Promise<string | null> {
 
 export async function renderTripVideo(
   trip: Trip,
-  { onProgress, signal }: { onProgress?: (phase: "prepare" | "render", p: number) => void; signal?: AbortSignal } = {}
+  { onProgress, signal, lang = "ru" }: { onProgress?: (phase: "prepare" | "render", p: number) => void; signal?: AbortSignal; lang?: Lang } = {}
 ): Promise<Blob> {
   if (!videoSupported()) throw new Error("unsupported")
   if (!trip.cities.length) throw new Error("empty")
@@ -406,7 +401,7 @@ export async function renderTripVideo(
       ctx.fillStyle = SPACE
       ctx.fillRect(0, 0, VIDEO_W, VIDEO_H)
       ctx.drawImage(map.getCanvas(), 0, 0, VIDEO_W, VIDEO_H)
-      drawOverlay(ctx, map, trip, fr, photos, (i + 1) / total)
+      drawOverlay(ctx, map, trip, fr, photos, (i + 1) / total, lang)
       const frame = new VideoFrame(out, { timestamp: Math.round((i * 1e6) / FPS), duration: Math.round(1e6 / FPS) })
       encoder.encode(frame, { keyFrame: i % (FPS * 2) === 0 })
       frame.close()
