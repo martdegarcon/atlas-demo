@@ -23,6 +23,8 @@ export const api = {
     call<{ trip: Trip }>(`/api/trips/${encodeURIComponent(trip.id)}`, { method: "PUT", body: JSON.stringify(trip) }).then((r) => r.trip),
   deleteTrip: (id: string) => call<{ ok: true }>(`/api/trips/${encodeURIComponent(id)}`, { method: "DELETE" }),
   replaceAll: (trips: Trip[]) => call<{ trips: Trip[] }>("/api/trips", { method: "PUT", body: JSON.stringify({ trips }) }).then((r) => r.trips),
+  setCityCountries: (items: { id: string; country?: string; countryCode: string }[]) =>
+    call<{ updated: number }>("/api/cities/countries", { method: "POST", body: JSON.stringify({ items }) }),
   login: (password: string) => call<{ ok: true }>("/api/auth/login", { method: "POST", body: JSON.stringify({ password }) }),
   logout: () => call<{ ok: true }>("/api/auth/logout", { method: "POST" }),
   resolveLink: (url: string) => call<{ url: string }>("/api/resolve-link", { method: "POST", body: JSON.stringify({ url }) }).then((r) => r.url),

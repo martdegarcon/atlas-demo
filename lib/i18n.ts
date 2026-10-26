@@ -196,9 +196,14 @@ function pluralRu(n: number, forms: readonly string[]) {
   return forms[2]
 }
 
-export function countLabel(lang: Lang, n: number, key: keyof typeof FORMS): string {
+// Только слово в нужной форме: «страны», «мест», «locations» — для подписи под крупной цифрой
+export function pluralWord(lang: Lang, n: number, key: keyof typeof FORMS): string {
   const f = FORMS[key]
-  return lang === "en" ? `${n} ${n === 1 ? f.en[0] : f.en[1]}` : `${n} ${pluralRu(n, f.ru)}`
+  return lang === "en" ? (n === 1 ? f.en[0] : f.en[1]) : pluralRu(n, f.ru)
+}
+
+export function countLabel(lang: Lang, n: number, key: keyof typeof FORMS): string {
+  return `${n} ${pluralWord(lang, n, key)}`
 }
 
 // «Без мест» — только у страны-отметки или пустой поездки

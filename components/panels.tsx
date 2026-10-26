@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import gsap from "gsap"
-import { citiesTag, countLabel, languages, t, type Lang } from "@/lib/i18n"
+import { citiesTag, countLabel, pluralWord, languages, t, type Lang } from "@/lib/i18n"
 import { countCountries, findCity, placeCount, type City, type Entry, type Trip } from "@/lib/types"
 import { cn } from "./editors"
 import { Photo, usePostViewer, type ViewerItem } from "./photo"
@@ -130,8 +130,8 @@ export function MapPanel(p: {
         ) : (
           <>
             <div className="grid grid-cols-2 gap-2 pb-3">
-              <Stat value={countries} label={countLabel(lang, countries, "country")} />
-              <Stat value={cityCount} label={countLabel(lang, cityCount, "place")} />
+              <Stat value={countries} label={pluralWord(lang, countries, "country")} />
+              <Stat value={cityCount} label={pluralWord(lang, cityCount, "place")} />
             </div>
             <h2 className={cn("px-2 pb-2", eyebrowCls)}>{t(lang, "tripsHeader")}</h2>
             {!trips.length && <div data-reveal className="glass-tile rounded-[22px] p-5 text-sm text-muted-foreground">{t(lang, canEdit ? "emptyAtlas" : "emptyAtlasPublic")}</div>}
@@ -264,10 +264,10 @@ export function MorePanel(p: {
       <div ref={ref} className="no-scrollbar scroll-fade min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-8">
         <div className="flex flex-col gap-3">
           <div data-reveal className="glass-tile grid grid-cols-3 gap-3 rounded-[22px] p-4 text-center">
-            {[[trips.length, "statTripsLabel"], [countries, "statCountriesLabel"], [cities, "statCitiesLabel"]].map(([v, k]) => (
+            {([[trips.length, "trip"], [countries, "country"], [cities, "place"]] as const).map(([v, k]) => (
               <div key={k as string}>
                 <div className="text-2xl font-light">{v as number}</div>
-                <div className={cn("mt-0.5", eyebrowCls)}>{t(lang, k as "statTripsLabel")}</div>
+                <div className={cn("mt-0.5", eyebrowCls)}>{pluralWord(lang, v, k)}</div>
               </div>
             ))}
           </div>
@@ -330,8 +330,10 @@ function Stat({ value, label }: { value: number; label: string }) {
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const from = { v: 0 }
-    const tween = gsap.to(from, { v: value, duration: 1.1, ease: "power3.out", onUpdate: () => { el.textContent = String(Math.round(from.v)) } })
+    // от прежнего значения к новому: при обновлении данных цифра плавно меняется, а не считает заново с нуля
+    const from = { v: Number(el.textContent) || 0 }
+    if (from.v === value) { el.textContent = String(value); return }
+    const tween = gsap.to(from, { v: value, duration: from.v === 0 ? 1.1 : 0.6, ease: "power3.out", onUpdate: () => { el.textContent = String(Math.round(from.v)) } })
     return () => { tween.kill() }
   }, [value])
   return (

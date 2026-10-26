@@ -22,8 +22,8 @@ describe("MapPanel — уровни фокуса", () => {
   it("мир: статистика, список поездок, бейдж скрытой", () => {
     mapPanel()
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Атлас(4)")
-    expect(screen.getByText("4 страны")).toBeInTheDocument()
-    expect(screen.getByText("14 мест")).toBeInTheDocument()
+    expect(screen.getByText("страны")).toBeInTheDocument()
+    expect(screen.getByText("мест")).toBeInTheDocument()
     expect(screen.getAllByText("скрыта")).toHaveLength(1)
   })
   it("страна: поездки страны с таймлайном", async () => {
@@ -88,7 +88,7 @@ describe("MapPanel — права", () => {
   })
   it("английский интерфейс", () => {
     mapPanel({ lang: "en" })
-    expect(screen.getByText("4 countries")).toBeInTheDocument()
+    expect(screen.getByText("countries")).toBeInTheDocument()
     expect(screen.getByText("hidden")).toBeInTheDocument()
   })
 })
@@ -188,7 +188,7 @@ describe("MorePanel", () => {
   it("статистика", () => {
     more()
     const stats = screen.getByText("поездки").parentElement!.parentElement!
-    expect(stats.textContent).toBe("4поездки4страны14места")
+    expect(stats.textContent).toBe("4поездки4страны14мест")
   })
 })
 

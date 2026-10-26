@@ -73,12 +73,16 @@ export function countryKeys(trips: Trip[]): Set<string> {
     // тур, все точки которого в одной стране, связывает и название тура с кодом
     if (t.cities.every((x) => x.countryCode === c.countryCode)) codeByName.set(norm(t.country), c.countryCode)
   }
+  // в поле страны тура бывает список: «Латвия, Швеция, Дания» — это три страны
+  const tripNames = (t: Trip) => t.country.split(/[,;/]+/).map(norm).filter(Boolean)
   const keys = new Set<string>()
+  const addName = (name: string) => keys.add(codeByName.get(name) || name)
   for (const t of trips) {
-    if (!t.cities.length) { keys.add(codeByName.get(norm(t.country)) || norm(t.country)); continue }
+    if (!t.cities.length) { tripNames(t).forEach(addName); continue }
     for (const c of t.cities) {
-      const name = norm(c.country || t.country)
-      keys.add(c.countryCode || codeByName.get(name) || name)
+      if (c.countryCode) keys.add(c.countryCode)
+      else if (c.country) addName(norm(c.country))
+      else tripNames(t).forEach(addName)
     }
   }
   keys.delete("")

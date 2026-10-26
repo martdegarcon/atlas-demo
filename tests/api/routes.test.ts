@@ -21,6 +21,7 @@ const tripRoute = await import("@/app/api/trips/[id]/route")
 const photosRoute = await import("@/app/api/photos/route")
 const photoRoute = await import("@/app/api/photos/[id]/route")
 const resolveRoute = await import("@/app/api/resolve-link/route")
+const countriesRoute = await import("@/app/api/cities/countries/route")
 
 const BASE = "http://atlas.test"
 const ctx = <T extends Record<string, string>>(p: T) => ({ params: Promise.resolve(p) })
@@ -213,5 +214,20 @@ describe("разворот коротких ссылок", () => {
     vi.stubGlobal("fetch", fetchMock)
     expect((await resolve("https://maps.app.goo.gl/AbC")).status).toBe(200)
     expect(fetchMock.mock.calls.length).toBeLessThanOrEqual(6)
+  })
+})
+
+describe("досчёт стран точек", () => {
+  it("гостю нельзя, владельцу — только страна, кривые данные отклоняются", async () => {
+    const t = makeTrip({ id: "geo" })
+    const body = { items: [{ id: t.cities[0].id, country: "Грузия", countryCode: "ge" }] }
+    expect((await countriesRoute.POST(req("/api/cities/countries", { method: "POST", json: body }))).status).toBe(401)
+    await signIn()
+    await tripRoute.PUT(req("/api/trips/geo", { method: "PUT", json: t }), ctx({ id: "geo" }))
+    expect((await countriesRoute.POST(req("/api/cities/countries", { method: "POST", json: { items: [{ id: t.cities[0].id, countryCode: "GEO" }] } }))).status).toBe(400)
+    const res = await countriesRoute.POST(req("/api/cities/countries", { method: "POST", json: body }))
+    expect(await res.json()).toEqual({ updated: 1 })
+    const got = await (await tripRoute.GET(req("/api/trips/geo"), ctx({ id: "geo" }))).json()
+    expect(got.trip.cities[0]).toMatchObject({ country: "Грузия", countryCode: "ge" })
   })
 })

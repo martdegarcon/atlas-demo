@@ -220,16 +220,13 @@ export function AtlasApp({ initialTrips, isAdmin, loginEnabled, initialTripId = 
         if (!found.size) return
         const batch = found
         found = new Map()
+        // на сервер — только страны точек (не всю поездку, чтобы не затереть
+        // правку с другого устройства), на экране — вписываем в текущее состояние
         queue.current = queue.current.then(async () => {
           if (ctrl.signal.aborted) return
-          const { trips: next, changed } = withCountries(tripsRef.current, batch)
-          if (!changed.length) return
-          tripsRef.current = next
-          setTrips(next)
-          for (const id of changed) {
-            const trip = next.find((x) => x.id === id)
-            if (trip) await api.saveTrip(trip).catch(() => {})
-          }
+          const items = [...batch].map(([id, v]) => ({ id, countryCode: v.countryCode!, ...(v.country ? { country: v.country } : {}) }))
+          try { await api.setCityCountries(items) } catch { return }
+          setTrips((cur) => withCountries(cur, batch).trips)
         })
       }
       let prevTrip: string | null = null

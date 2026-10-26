@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import { __resetDbForTests, getDb } from "@/lib/db"
 import {
-  deleteTrip, getPhoto, getTripById, getTripBySlug, insertPhoto, listTrips, replaceAllTrips, sweepPhotos, upsertTrip,
+  deleteTrip, getPhoto, getTripById, setCityCountries, getTripBySlug, insertPhoto, listTrips, replaceAllTrips, sweepPhotos, upsertTrip,
 } from "@/lib/trips-repo"
 import { demoTrips } from "@/lib/demo-data"
 import { makeTrip, TINY_JPEG } from "../fixtures"
@@ -78,6 +78,24 @@ describe("сохранение поездки", () => {
     expect(saved.cities.map((c) => c.countryCode)).toEqual(["ge", "am", undefined])
     expect(saved.cities[1].country).toBe("Армения")
     expect((await getTripById("multi", { includePrivate: true }))!.cities[0]).toMatchObject({ country: "Грузия", countryCode: "ge" })
+  })
+  it("досчёт стран пишет только страну и только там, где её нет", async () => {
+    const t = makeTrip({ id: "fill" })
+    await upsertTrip(t)
+    expect(await setCityCountries([{ id: t.cities[0].id, country: "Грузия", countryCode: "ge" }, { id: "no-such", countryCode: "xx" }])).toBe(1)
+    expect(await setCityCountries([{ id: t.cities[0].id, country: "Ошибка", countryCode: "zz" }])).toBe(0)
+    const saved = (await getTripById("fill", { includePrivate: true }))!
+    expect(saved.cities[0]).toMatchObject({ name: t.cities[0].name, country: "Грузия", countryCode: "ge" })
+    expect(saved.title).toBe(t.title)
+  })
+  it("сохранение поездки из старой копии не стирает найденные страны", async () => {
+    const t = makeTrip({ id: "stale" })
+    await upsertTrip(t)
+    await setCityCountries([{ id: t.cities[1].id, country: "Грузия", countryCode: "ge" }])
+    // другое устройство правит название, о странах оно ещё не знает
+    const saved = await upsertTrip({ ...t, title: "Новое название" })
+    expect(saved.title).toBe("Новое название")
+    expect(saved.cities[1]).toMatchObject({ country: "Грузия", countryCode: "ge" })
   })
   it("страна-отметка сохраняет kind", async () => {
     const saved = await upsertTrip(makeTrip({ id: "fr", title: "Франция", kind: "country", cities: [{ id: "fr-c", name: "Франция", lat: 46, lng: 2, date: "" }] }))

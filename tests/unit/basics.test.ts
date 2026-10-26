@@ -117,6 +117,11 @@ describe("подсчёт стран и мест", () => {
   it("старые данные без стран у точек — как раньше, по турам", () => {
     expect(countCountries([trip("a", "Япония", [city("1")]), trip("b", "Япония", [city("2")]), trip("c", "Грузия", [city("3")])])).toBe(2)
   })
+  it("список стран в поле тура — несколько стран", () => {
+    expect(countCountries([trip("eu", "Латвия, Швеция,Дания", [city("1"), city("2")])])).toBe(3)
+    // как только у точек появились коды, считаются коды
+    expect(countCountries([trip("eu", "Латвия, Швеция,Дания", [city("1", { country: "Латвия", countryCode: "lv" }), city("2", { country: "Швеция", countryCode: "se" })])])).toBe(2)
+  })
   it("места: точки туров, страна-отметка не место", () => {
     expect(placeCount([trip("a", "Япония", [city("1"), city("2")]), trip("b", "Грузия", [city("3")], { kind: "country" })])).toBe(2)
   })

@@ -101,6 +101,19 @@ export async function saveTrip(q: Query, trip: Trip): Promise<void> {
        period = EXCLUDED.period, kind = EXCLUDED.kind, is_public = EXCLUDED.is_public, updated_at = now()`,
     [trip.id, slug, trip.title, trip.country, trip.year, trip.period || "", trip.kind || null, trip.isPublic, trip.createdAt || null]
   )
+  // Страна у точки, уже найденная раньше, не теряется, если поездку сохранили
+  // из копии, где её ещё нет (например, со второго устройства)
+  const known = new Map(
+    (await q<{ id: string; country: string | null; country_code: string | null }>("SELECT id, country, country_code FROM cities WHERE trip_id = $1", [trip.id]))
+      .map((r) => [r.id, r])
+  )
+  trip = {
+    ...trip,
+    cities: trip.cities.map((c) => {
+      const k = known.get(c.id)
+      return !c.countryCode && k?.country_code ? { ...c, countryCode: k.country_code, country: c.country || k.country || undefined } : c
+    }),
+  }
   await q("DELETE FROM cities WHERE trip_id = $1", [trip.id])
 
   if (trip.cities.length) {
@@ -187,4 +200,23 @@ export async function sweepPhotos() {
   } catch {
     // уборка — не критична, ошибка не должна ломать сохранение
   }
+}
+
+// Вписать страны точкам — только эти два поля и только там, где страны ещё нет.
+// Фоновый досчёт пишет сюда, а не сохраняет поездку целиком: так он не затрёт
+// правку, сделанную в это же время с другого устройства.
+export async function setCityCountries(items: { id: string; country?: string; countryCode: string }[]): Promise<number> {
+  if (!items.length) return 0
+  const db = await getDb()
+  return db.tx(async (q) => {
+    let n = 0
+    for (const it of items) {
+      const rows = await q<{ id: string }>(
+        "UPDATE cities SET country = $2, country_code = $3 WHERE id = $1 AND country_code IS NULL RETURNING id",
+        [it.id, it.country || null, it.countryCode]
+      )
+      n += rows.length
+    }
+    return n
+  })
 }
